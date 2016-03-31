@@ -1,0 +1,23 @@
+model:
+
+
+//Account
+//FBAccount
+//Journey(recurring? + jmt + duration? + startsAt)
+//JourneyMeansOfTransportation  or JMT (tube lines and trains)
+//Alert
+//EmailAlert
+
+//JobForJack(runFrom + runTo + alertSent + recurring)
+
+// ++ TFL model
+// ++ TRAIN model
+
+scheduledJobs to create:
+
+- Job Processing
+- Alert Processing
+- TFL tube checker
+- Train lines checker
+
+
