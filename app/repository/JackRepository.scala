@@ -27,6 +27,7 @@ object JackRepository extends JackRepository {
 trait JackRepository {
 
 
+  def bucketName = "jack"
   def bucket: CouchbaseBucket
 
 
@@ -50,13 +51,13 @@ trait JackRepository {
   }
 
   def findAll(): Future[List[Jack]] = {
-    bucket.find[Jack]("bobby", "by_name")(new Query().setIncludeDocs(true).setStale(Stale.FALSE))
+    bucket.find[Jack](bucketName, "by_name")(new Query().setIncludeDocs(true).setStale(Stale.FALSE))
   }
 
   def findByName(name: String): Future[Option[Jack]] = {
     val query = new Query().setIncludeDocs(true).setLimit(1)
       .setRangeStart(ComplexKey.of(name)).setRangeEnd(ComplexKey.of(s"$name\uefff")).setStale(Stale.FALSE)
-    bucket.find[Jack]("bobby", "by_name")(query).map(_.headOption)
+    bucket.find[Jack](bucketName, "by_name")(query).map(_.headOption)
   }
 
 

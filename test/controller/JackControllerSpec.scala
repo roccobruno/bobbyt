@@ -4,6 +4,7 @@ import java.util.UUID
 
 import model.{Jack}
 import org.junit.runner.RunWith
+import org.scalatest.WordSpecLike
 import org.specs2.matcher.MatchResult
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
@@ -11,10 +12,9 @@ import play.api.libs.json.{Json, JsLookupResult, JsValue}
 import play.api.test.{WithApplication, FakeRequest}
 import play.api.test.Helpers._
 
-@RunWith(classOf[JUnitRunner])
-class JackControllerSpec extends Specification {
+class JackControllerSpec extends WordSpecLike with org.scalatest.Matchers with org.scalatest.OptionValues {
 
-  "Bobby controller" should {
+  "Jack controller" should {
 
     val id = "12345"
 
@@ -24,23 +24,23 @@ class JackControllerSpec extends Specification {
       private val id = UUID.randomUUID().toString
       private val bobby = Jack(firstName = "test", lastName = "testr")
       val response = route(FakeRequest(POST, "/api/bobby").withBody(Json.toJson(bobby)))
-      status(response.get) must equalTo(CREATED)
+      status(response.get) should be (CREATED)
 
       val getResource = headers(response.get).get("Location").get
-      getResource must be startWith("/api/bobby")
+      getResource should  startWith("/api/bobby")
 
       val getRec = route(FakeRequest(GET, getResource)).get
 
-      status(getRec) must equalTo(OK)
+      status(getRec) should be (OK)
       val json: Jack = contentAsJson(getRec).as[Jack]
-      json.firstName must equalTo("test")
-      json.lastName must equalTo("testr")
+      json.firstName should be ("test")
+      json.lastName should be ("testr")
 
       val delResponse = route(FakeRequest(DELETE, getResource))
-      status(delResponse.get) must equalTo(OK)
+      status(delResponse.get) should be (OK)
 
       val getRecR = route(FakeRequest(GET, getResource)).get
-      status(getRecR) must equalTo(NOT_FOUND)
+      status(getRecR) should be (NOT_FOUND)
 
     }
 
