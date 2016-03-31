@@ -13,3 +13,12 @@ object Jack {
   implicit val format = Json.format[Jack]
 }
 
+//Account
+//FBAccount
+//Journey
+//JourneyMeansOfTransportation
+//Alert
+//EmailAlert
+//
+// ++ TFL model
+// ++ TRAIN model
