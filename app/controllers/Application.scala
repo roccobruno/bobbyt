@@ -1,5 +1,9 @@
 package controllers
 
+import javax.inject.Inject
+
+import akka.actor.ActorSystem
+import jobs.{SayHello, HelloActor}
 import org.reactivecouchbase.ReactiveCouchbaseDriver
 import play.api._
 import play.api.libs.json.JsObject
@@ -7,9 +11,13 @@ import play.api.mvc._
 import play.api.libs.json._
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class Application extends Controller {
+class Application @Inject() (system: ActorSystem)  extends Controller {
+
+  val helloActor = system.actorOf(HelloActor.props, "hello-actor")
+
 
   def index = Action {
+    helloActor ! SayHello("Rocco")
     Ok(views.html.index("Your new application is ready."))
   }
 

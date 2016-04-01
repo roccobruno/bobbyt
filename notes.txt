@@ -15,9 +15,11 @@ model:
 
 scheduledJobs to create:
 
-- Job Processing
+- Job Processing(recurring)
+- Job Processing(one-time)
 - Alert Processing
 - TFL tube checker
 - Train lines checker
+- Job Reset
 
 
