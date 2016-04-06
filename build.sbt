@@ -7,13 +7,14 @@ lazy val root = (project in file(".")).enablePlugins(PlayScala)
 scalaVersion := "2.11.6"
 
 resolvers += "ReactiveCouchbase Releases" at "https://raw.github.com/ReactiveCouchbase/repository/master/releases/"
-
+resolvers += Resolver.bintrayRepo("hmrc", "releases")
 
 
 libraryDependencies ++= Seq(
   "io.netty" % "netty" % "3.9.2.Final",
   "com.ning" % "async-http-client" % "1.8.16",
   "org.reactivecouchbase" %% "reactivecouchbase-play" % "0.3",
+  "uk.gov.hmrc" %% "http-verbs" % "3.3.0",
   jdbc,
   cache,
 //  ws,

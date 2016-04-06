@@ -16,10 +16,15 @@ object Jack {
 
 
 case class Station(name: String, crsCode: String)
+
 case class TrainService(from: Station, to: Station)
+
 case class TubeLine(name: String, id: String)
+
 case class MeansOfTransportation(tubeLines: Seq[TubeLine], trainService: Seq[TrainService])
+
 case class Journey(recurring: Boolean, meansOfTransportation: MeansOfTransportation, startsAt: DateTime, duration: Int)
+
 case class Email(from: String, to: String)
 
 /**
@@ -31,10 +36,16 @@ case class Email(from: String, to: String)
  * @param recurring if occurs every day
  * @param onlyOn indicates the date on the job must be executed - it cannot be a recurring one
  */
-case class Job(alert: Email, journey: Journey,private val id: String = UUID.randomUUID().toString, active: Boolean, recurring: Boolean, onlyOn: Option[DateTime]) {
+case class Job(alert: Email,
+               journey: Journey,
+               private val id: String = UUID.randomUUID().toString,
+               active: Boolean,
+               recurring: Boolean,
+               onlyOn: Option[DateTime]) {
   def getId = this.id
 }
 
 
 case class EmailAlert(email: Email, persisted: Option[DateTime], sent: Option[DateTime])
-case class JobForJack(runFrom:Int, runTill: Int, alertSent: Boolean, recurring: Boolean)
+
+case class JobForJack(runFrom: Int, runTill: Int, alertSent: Boolean, recurring: Boolean)
