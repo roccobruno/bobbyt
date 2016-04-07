@@ -1,20 +1,39 @@
 package controllers
 
 import java.util.UUID
+import java.util.concurrent.TimeUnit
+import javax.inject.Inject
 
+import akka.actor.ActorSystem
 import model.{Jack}
 import org.reactivecouchbase.client.OpResult
 import play.api.libs.json._
+import play.api.libs.ws.WSClient
 import play.api.mvc.{Request, Result, Action, Controller}
-import repository.JackRepository
+import repository.{TubeRepository, JackRepository}
+import service.tfl.{TubeConnector, TubeService}
 import scala.concurrent.ExecutionContext.Implicits.global
 
 import scala.concurrent.Future
+import scala.concurrent.duration.Duration
 
 
-class JackController extends Controller with JsonParser {
+class JackController  @Inject() (system: ActorSystem, wsClient:WSClient) extends Controller with JsonParser {
 
   def repository: JackRepository = JackRepository
+
+
+
+  object TubeServiceRegistry extends TubeService with TubeConnector {
+    val ws = wsClient
+    val tubeRepository = TubeRepository
+  }
+
+  def fetchTubeLine() = Action.async { implicit request =>
+    TubeServiceRegistry.updateTubeServices map { res=>
+      Ok(Json.obj("res"->res))
+    }
+  }
 
   def find(id: String) = Action.async { implicit request =>
     repository.findById(id) map {
@@ -35,7 +54,7 @@ class JackController extends Controller with JsonParser {
   def save() = Action.async(parse.json) { implicit request =>
     withJsonBody[Jack](bobby =>
       repository.saveABobby(bobby).map {
-        case Left(id) => Created.withHeaders("Location" -> ("/api/bobby/" + id))
+        case Left(id) => Created.withHeaders("Location" -> ("/api/jack/" + id))
         case _ => InternalServerError
       }
     )

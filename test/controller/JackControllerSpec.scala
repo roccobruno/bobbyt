@@ -14,20 +14,20 @@ import play.api.test.Helpers._
 @RunWith(classOf[JUnitRunner])
 class JackControllerSpec extends Specification {
 
-  "Bobby controller" should {
+  "jack controller" should {
 
     val id = "12345"
 
 
-    "return 200 when posting a Bobby record" in new WithApplication {
+    "return 200 when posting a jack record" in new WithApplication {
 
       private val id = UUID.randomUUID().toString
-      private val bobby = Jack(firstName = "test", lastName = "testr")
-      val response = route(FakeRequest(POST, "/api/bobby").withBody(Json.toJson(bobby)))
+      private val jack = Jack(firstName = "test", lastName = "testr")
+      val response = route(FakeRequest(POST, "/api/jack").withBody(Json.toJson(jack)))
       status(response.get) must equalTo(CREATED)
 
       val getResource = headers(response.get).get("Location").get
-      getResource must be startWith("/api/bobby")
+      getResource must be startWith("/api/jack")
 
       val getRec = route(FakeRequest(GET, getResource)).get
 
