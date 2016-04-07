@@ -13,7 +13,7 @@ object HelloActor {
 class HelloActor extends Actor {
 
   def receive = {
-    case SayHello(name: String) =>
+    case Run(name: String) =>
       println("ciao "+name)
       sender() ! "Hello, " + name
   }

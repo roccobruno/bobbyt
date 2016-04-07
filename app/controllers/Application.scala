@@ -3,7 +3,7 @@ package controllers
 import javax.inject.Inject
 
 import akka.actor.ActorSystem
-import jobs.{SayHello, HelloActor}
+import jobs.{Run, HelloActor}
 import org.reactivecouchbase.ReactiveCouchbaseDriver
 import play.api._
 import play.api.libs.json.JsObject
@@ -17,7 +17,7 @@ class Application @Inject() (system: ActorSystem)  extends Controller {
 
 
   def index = Action {
-    helloActor ! SayHello("Rocco")
+    helloActor ! Run("Rocco")
     Ok(views.html.index("Your new application is ready."))
   }
 

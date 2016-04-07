@@ -5,6 +5,7 @@ import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
 import akka.actor.ActorSystem
+import jobs.{Run, TubeServiceFetchActor, HelloActor}
 import model.{Jack}
 import org.reactivecouchbase.client.OpResult
 import play.api.libs.json._
@@ -16,23 +17,29 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 import scala.concurrent.Future
 import scala.concurrent.duration.Duration
+import scala.concurrent.duration._
 
 
 class JackController  @Inject() (system: ActorSystem, wsClient:WSClient) extends Controller with JsonParser {
 
   def repository: JackRepository = JackRepository
 
-
-
   object TubeServiceRegistry extends TubeService with TubeConnector {
     val ws = wsClient
     val tubeRepository = TubeRepository
   }
+  lazy  val tubeServiceActor = system.actorOf(TubeServiceFetchActor.props(TubeServiceRegistry), "tubeServiceActor")
+
+
+  lazy val cancellable = system.scheduler.schedule(
+    0.microseconds, 10000.milliseconds, tubeServiceActor,  Run("tick"))
+
 
   def fetchTubeLine() = Action.async { implicit request =>
-    TubeServiceRegistry.updateTubeServices map { res=>
-      Ok(Json.obj("res"->res))
-    }
+
+      cancellable
+      Future.successful(Ok(Json.obj("res"->true)))
+
   }
 
   def find(id: String) = Action.async { implicit request =>
