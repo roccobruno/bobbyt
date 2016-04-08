@@ -58,13 +58,31 @@ class JackController  @Inject() (system: ActorSystem, wsClient:WSClient) extends
       }
   }
 
+  def deleteRunningJob(id: String) = Action.async {
+    implicit request =>
+      repository.deleteRunningJoById(id) map {
+        case Left(id) => Ok
+        case _ => InternalServerError
+      }
+  }
+
+  def findRunningJobByJobId(jobId: String) = Action.async { implicit request =>
+    repository.findRunningJobByJobId(jobId) map {
+      case b: Some[RunningJob] => Ok(Json.toJson[RunningJob](b.get))
+      case _ => NotFound
+    }
+  }
+
+
 
   def save() = Action.async(parse.json) { implicit request =>
     withJsonBody[Job](jackJob =>
-      repository.saveAJackJob(jackJob).map {
-        case Left(id) => Created.withHeaders("Location" -> ("/api/jack/" + id))
-        case _ => InternalServerError
-      }
+
+      for {
+        Left(id) <- repository.saveAJackJob(jackJob)
+        runningId <- repository.saveARunningJackJob(RunningJob.fromJob(jackJob))
+      }  yield Created.withHeaders("Location" -> ("/api/jack/" + id))
+
     )
   }
 

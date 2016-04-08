@@ -2,7 +2,7 @@ package repository
 
 import java.util.UUID
 
-import com.couchbase.client.protocol.views.{ComplexKey, Stale, Query}
+import com.couchbase.client.protocol.views.{DesignDocument, ComplexKey, Stale, Query}
 import model.{Job, Jack}
 import org.reactivecouchbase.{ReactiveCouchbaseDriver, CouchbaseBucket}
 import org.reactivecouchbase.play.PlayCouchbase
@@ -80,4 +80,9 @@ trait JackRepository {
   }
 
 
+  def findRunningJobByJobId(jobId: String): Future[Option[RunningJob]] = {
+    val query = new Query().setIncludeDocs(true).setLimit(1)
+      .setRangeStart(ComplexKey.of(jobId)).setRangeEnd(ComplexKey.of(s"$jobId\uefff")).setStale(Stale.FALSE)
+    runningJobBucket.find[RunningJob]("runningJob", "by_jobId")(query).map(_.headOption)
+  }
 }

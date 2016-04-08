@@ -10,8 +10,11 @@ GET     /assets/*file               controllers.Assets.versioned(path="/public",
 
 
 #Jack Api
-GET   /api/jack/fetch              controllers.JackController.fetchTubeLine
-GET    /api/jack/:id               controllers.JackController.find(id:String)
-POST   /api/jack                   controllers.JackController.save
-DELETE /api/jack/:id               controllers.JackController.delete(id:String)
+GET   /api/jack/fetch                     controllers.JackController.fetchTubeLine
+GET    /api/jack/:id                      controllers.JackController.find(id:String)
+POST   /api/jack                          controllers.JackController.save
+DELETE /api/jack/:id                      controllers.JackController.delete(id:String)
 
+#Running job
+GET      /api/jack/running-job/job-id/:id    controllers.JackController.findRunningJobByJobId(id:String)
+DELETE   /api/jack/running-job/id/:id        controllers.JackController.deleteRunningJob(id:String)

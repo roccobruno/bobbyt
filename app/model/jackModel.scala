@@ -40,7 +40,14 @@ object MeansOfTransportation {
 }
 
 
-case class TimeOfDay(hour: Int, min: Int)
+case class TimeOfDay(hour: Int, min: Int) {
+  require((min >=0 && min <= 60), "min cannot be gr than 60")
+  require((hour>=0 && hour <= 24), "hour cannot be gr than 24")
+
+  def plusMinutes(mins: Int) = {
+    TimeOfDay(hour + (mins + min) / 60, (mins + min) % 60)
+  }
+}
 
 object TimeOfDay {
 
@@ -84,13 +91,13 @@ object Job {
 }
 
 
-case class RunningJob(private val id: String = UUID.randomUUID().toString,from: TimeOfDay, to:TimeOfDay, alertSent: Boolean = false, recussing: Boolean = true, jobId: String){
+case class RunningJob(private val id: String = UUID.randomUUID().toString, from: TimeOfDay, to: TimeOfDay, alertSent: Boolean = false, recurring: Boolean = true, jobId: String) {
   def getId = this.id
 }
 
 object RunningJob {
 
-//  def fromJob(job: Job) = RunningJob()
+  def fromJob(job: Job) = RunningJob(from = job.journey.startsAt,to = job.journey.startsAt.plusMinutes(job.journey.durationInMin),jobId = job.getId, recurring = job.journey.recurring)
 
   implicit val format = Json.format[RunningJob]
 }
