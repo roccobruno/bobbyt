@@ -38,11 +38,16 @@ trait TubeService {
   val tubeRepository : TubeRepository
 
   def updateTubeServices: Future[Boolean] = {
+    val tubeRecordsF = fetchLineStatus("tube")
+    val dlrRecordsF = fetchLineStatus("dlr")
+    val tflRailRecordsF = fetchLineStatus("tflrail")
+    val overgroundRailRecordsF = fetchLineStatus("overground")
+
     for {
-      tubeRecords <- fetchLineStatus("tube")
-      dlrRecords <- fetchLineStatus("dlr")
+      tubeRecords <- tubeRecordsF
+      dlrRecords <- dlrRecordsF
       overgroundRecords <- fetchLineStatus("overground")
-      tflRailRecords <- fetchLineStatus("tflrail")
+      tflRailRecords <- tflRailRecordsF
       results <- tubeRepository.saveTubeService(tubeRecords ++ dlrRecords ++ overgroundRecords ++ tflRailRecords)
     } yield true
   }
