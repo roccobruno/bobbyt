@@ -6,7 +6,7 @@ import javax.inject.Inject
 
 import akka.actor.ActorSystem
 import jobs.{Run, TubeServiceFetchActor, HelloActor}
-import model.{Jack}
+import model.{Job, Jack}
 import org.reactivecouchbase.client.OpResult
 import play.api.libs.json._
 import play.api.libs.ws.WSClient
@@ -18,6 +18,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.concurrent.duration.Duration
 import scala.concurrent.duration._
+import model._
 
 
 class JackController  @Inject() (system: ActorSystem, wsClient:WSClient) extends Controller with JsonParser {
@@ -44,7 +45,7 @@ class JackController  @Inject() (system: ActorSystem, wsClient:WSClient) extends
 
   def find(id: String) = Action.async { implicit request =>
     repository.findById(id) map {
-      case b: Some[Jack] => Ok(Json.toJson[Jack](b.get))
+      case b: Some[Job] => Ok(Json.toJson[Job](b.get))
       case _ => NotFound
     }
   }
@@ -59,8 +60,8 @@ class JackController  @Inject() (system: ActorSystem, wsClient:WSClient) extends
 
 
   def save() = Action.async(parse.json) { implicit request =>
-    withJsonBody[Jack](bobby =>
-      repository.saveABobby(bobby).map {
+    withJsonBody[Job](jackJob =>
+      repository.saveAJackJob(jackJob).map {
         case Left(id) => Created.withHeaders("Location" -> ("/api/jack/" + id))
         case _ => InternalServerError
       }
