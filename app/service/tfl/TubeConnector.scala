@@ -19,7 +19,7 @@ trait TubeConnector  {
   val apiKey = Play.configuration.getString("tfl-api-key").getOrElse(throw new IllegalStateException("NO API KEY found for TFL"))
 
 
-  def fetchLineStatus: Future[Seq[TFLTubeService]] = ws.url(s"https://api.tfl.gov.uk/Line/Mode/tube/Status?detail=False&app_id=$apiId&app_key=$apiKey").get() map {
+  def fetchLineStatus(lineType:String): Future[Seq[TFLTubeService]] = ws.url(s"https://api.tfl.gov.uk/Line/Mode/$lineType/Status?detail=False&app_id=$apiId&app_key=$apiKey").get() map {
     response =>
       response.json.validate[Seq[TFLTubeService]].fold(
         errs => throw new IllegalArgumentException(s"Error in parsing TUBE service response error:$errs"),
@@ -39,8 +39,11 @@ trait TubeService {
 
   def updateTubeServices: Future[Boolean] = {
     for {
-      records <- fetchLineStatus
-      results <- tubeRepository.saveTubeService(records)
+      tubeRecords <- fetchLineStatus("tube")
+      dlrRecords <- fetchLineStatus("dlr")
+      overgroundRecords <- fetchLineStatus("overground")
+      tflRailRecords <- fetchLineStatus("tflrail")
+      results <- tubeRepository.saveTubeService(tubeRecords ++ dlrRecords ++ overgroundRecords ++ tflRailRecords)
     } yield true
   }
 
