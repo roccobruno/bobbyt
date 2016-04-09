@@ -17,4 +17,5 @@ DELETE /api/jack/:id                      controllers.JackController.delete(id:S
 
 #Running job
 GET      /api/jack/running-job/job-id/:id    controllers.JackController.findRunningJobByJobId(id:String)
+GET      /api/jack/running-job/active        controllers.JackController.findActiveRunningJob
 DELETE   /api/jack/running-job/id/:id        controllers.JackController.deleteRunningJob(id:String)

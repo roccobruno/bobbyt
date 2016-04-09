@@ -22,6 +22,10 @@ trait TubeRepository  {
 
   def bucket: CouchbaseBucket
 
+  def findById(id: String) = {
+    bucket.get[TFLTubeService](id)
+  }
+
   def saveTubeService(seq: Seq[TFLTubeService]): Future[Seq[OpResult]] = {
     Future.sequence(seq.map(service =>bucket.set[TFLTubeService](service.id,service.copy(lastUpdated = Some(DateTime.now)))))
   }

@@ -15,8 +15,8 @@ import scala.concurrent.Future
 trait TubeConnector  {
   val ws:WSClient
 
-  val apiId = Play.configuration.getString("tfl-api-id").getOrElse(throw new IllegalStateException("NO API ID found for TFL"))
-  val apiKey = Play.configuration.getString("tfl-api-key").getOrElse(throw new IllegalStateException("NO API KEY found for TFL"))
+  def apiId = Play.configuration.getString("tfl-api-id").getOrElse(throw new IllegalStateException("NO API ID found for TFL"))
+  def apiKey = Play.configuration.getString("tfl-api-key").getOrElse(throw new IllegalStateException("NO API KEY found for TFL"))
 
 
   def fetchLineStatus(lineType:String): Future[Seq[TFLTubeService]] = ws.url(s"https://api.tfl.gov.uk/Line/Mode/$lineType/Status?detail=False&app_id=$apiId&app_key=$apiKey").get() map {
@@ -34,6 +34,14 @@ trait TubeConnector  {
 trait TubeService {
   this:TubeConnector =>
 
+
+  def findTubeById(id: String) : Future[Option[TFLTubeService]] = {
+    tubeRepository.findById(id)
+  }
+
+  def findTubeByIds(ids: Seq[String]): Future[Seq[Option[TFLTubeService]]] = {
+    Future.sequence(ids.map(findTubeById))
+  }
 
   val tubeRepository : TubeRepository
 

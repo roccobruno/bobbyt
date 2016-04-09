@@ -13,6 +13,7 @@ resolvers += Resolver.bintrayRepo("hmrc", "releases")
 libraryDependencies ++= Seq(
   "io.netty" % "netty" % "3.9.2.Final",
   "org.reactivecouchbase" %% "reactivecouchbase-play" % "0.3",
+  "org.scalatest" %% "scalatest" % "2.2.6",
   jdbc,
   cache,
   ws,

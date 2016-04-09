@@ -3,7 +3,7 @@ package controller
 import java.util.UUID
 
 import model._
-import org.joda.time.LocalDate
+import org.joda.time.{DateTime, LocalDate}
 import org.junit.runner.RunWith
 import org.specs2.matcher.MatchResult
 import org.specs2.mutable.Specification
@@ -47,8 +47,13 @@ class JackControllerSpec extends Specification {
 
     "return 201 and create a running job with a job creation" in new WithApplication {
       private val id = UUID.randomUUID().toString
-      private val timeOfDay = TimeOfDay(8, 30)
-      private val job = Job(alert = Email("from@mss.it","from@mss.it"),journey= Journey(true,MeansOfTransportation(Seq(TubeLine("central","central")),Nil),timeOfDay,40))
+
+      private val now = DateTime.now.plusMinutes(2)
+      private val hourOfTheDay = now.hourOfDay().get()
+      private val minOfTheDay = now.minuteOfHour().get()
+      private val jobStartsAtTime = TimeOfDay(hourOfTheDay, minOfTheDay, TimeOfDay.time(hourOfTheDay, minOfTheDay))
+      private val job = Job(alert = Email("from@mss.it","from@mss.it"),journey=
+        Journey(true,MeansOfTransportation(Seq(TubeLine("northern","northern")),Nil),jobStartsAtTime,40))
       val response = route(implicitApp,FakeRequest(POST, "/api/jack").withBody(Json.toJson(job)))
       status(response.get) must equalTo(CREATED)
 
@@ -60,19 +65,28 @@ class JackControllerSpec extends Specification {
       val json: Job = contentAsJson(getRec).as[Job]
       val jobId = json.getId
 
-      val delResponse = route(implicitApp,FakeRequest(DELETE, getResource))
-      status(delResponse.get) must equalTo(OK)
 
       val runningJobResp = route(implicitApp,FakeRequest(GET,s"/api/jack/running-job/job-id/$jobId")).get
       status(runningJobResp) must equalTo(OK)
       val runningJobJson: RunningJob = contentAsJson(runningJobResp).as[RunningJob]
 
-      runningJobJson.from must equalTo(timeOfDay)
-      runningJobJson.to must equalTo(TimeOfDay(9,10))
+      runningJobJson.from must equalTo(jobStartsAtTime)
+
+      val activeRunningJobResp = route(implicitApp,FakeRequest(GET,s"/api/jack/running-job/active")).get
+      status(runningJobResp) must equalTo(OK)
+      contentAsJson(activeRunningJobResp).as[Seq[RunningJob]].size must equalTo(1)
 
       val delRunningJobResponse = route(implicitApp,FakeRequest(DELETE, s"/api/jack/running-job/id/${runningJobJson.getId}"))
       status(delRunningJobResponse.get) must equalTo(OK)
+
+      val delResponse = route(implicitApp,FakeRequest(DELETE, getResource))
+      status(delResponse.get) must equalTo(OK)
+
+
     }
+
+
+
 
 
 

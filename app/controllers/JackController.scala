@@ -12,7 +12,7 @@ import play.api.libs.json._
 import play.api.libs.ws.WSClient
 import play.api.mvc.{Request, Result, Action, Controller}
 import repository.{TubeRepository, JackRepository}
-import service.tfl.{TubeConnector, TubeService}
+import service.tfl.{JobService, TubeConnector, TubeService}
 import scala.concurrent.ExecutionContext.Implicits.global
 
 import scala.concurrent.Future
@@ -22,12 +22,18 @@ import model._
 
 
 class JackController  @Inject() (system: ActorSystem, wsClient:WSClient) extends Controller with JsonParser {
+  val repository: JackRepository = JackRepository
+  def getTubRepository = TubeRepository
 
-  def repository: JackRepository = JackRepository
+  object JobServiceImpl extends JobService {
+    val repo = repository
+    val ws = wsClient
+    val tubeRepository = getTubRepository
+  }
 
   object TubeServiceRegistry extends TubeService with TubeConnector {
     val ws = wsClient
-    val tubeRepository = TubeRepository
+    val tubeRepository = getTubRepository
   }
   lazy  val tubeServiceActor = system.actorOf(TubeServiceFetchActor.props(TubeServiceRegistry), "tubeServiceActor")
 
@@ -73,6 +79,13 @@ class JackController  @Inject() (system: ActorSystem, wsClient:WSClient) extends
     }
   }
 
+
+  def findActiveRunningJob() = Action.async { implicit request =>
+    JobServiceImpl.findAndProcessActiveJobs() map {
+      case recs => Ok(Json.toJson[Seq[RunningJob]](recs))
+    }
+
+  }
 
 
   def save() = Action.async(parse.json) { implicit request =>

@@ -3,7 +3,7 @@ package model
 import java.util.UUID
 
 import org.joda.time.DateTime
-import play.api.libs.json.Json
+import play.api.libs.json.{JsValue, Writes, Json}
 
 case class Jack(private val id: String = UUID.randomUUID().toString, firstName: String, lastName: String) {
   def getId = this.id
@@ -40,9 +40,10 @@ object MeansOfTransportation {
 }
 
 
-case class TimeOfDay(hour: Int, min: Int) {
-  require((min >=0 && min <= 60), "min cannot be gr than 60")
-  require((hour>=0 && hour <= 24), "hour cannot be gr than 24")
+case class TimeOfDay(hour: Int, min: Int, time: Int = 0) {
+
+  require((min >=0 && min <= 60), s"min : $min cannot be gr than 60")
+  require((hour>=0 && hour <= 24), s"hour : $hour cannot be gr than 24")
 
   def plusMinutes(mins: Int) = {
     TimeOfDay(hour + (mins + min) / 60, (mins + min) % 60)
@@ -51,9 +52,20 @@ case class TimeOfDay(hour: Int, min: Int) {
 
 object TimeOfDay {
 
+  def time(hour: Int,min : Int) = {
+
+    def minToStrin = if(min<10) s"0$min" else min.toString
+
+    (hour.toString + minToStrin).toInt
+  }
   def plusMinutes(mins: Int) = TimeOfDay
 
-  implicit val format = Json.format[TimeOfDay]
+  implicit val format = Json.reads[TimeOfDay]
+  implicit val writeformat = new Writes[TimeOfDay] {
+
+    override def writes(o: TimeOfDay): JsValue = Json.obj("hour" -> o.hour, "min" -> o.min, "time" -> time(o.hour,o.min) )
+  }
+
 }
 
 
@@ -102,7 +114,7 @@ object RunningJob {
   implicit val format = Json.format[RunningJob]
 }
 
-case class EmailAlert(email: Email, persisted: Option[DateTime], sent: Option[DateTime])
+case class EmailAlert(email: Email, persisted: Option[DateTime], sent: Option[DateTime], jobId: String)
 
 case class JobForJack(runFrom: Int, runTill: Int, alertSent: Boolean, recurring: Boolean)
 
