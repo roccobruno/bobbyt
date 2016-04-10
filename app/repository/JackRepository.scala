@@ -31,9 +31,32 @@ object JackRepository extends JackRepository {
 trait JackRepository {
 
 
+  def driver:ReactiveCouchbaseDriver
   def bucket: CouchbaseBucket
   def runningJobBucket : CouchbaseBucket
   def alertsBucket : CouchbaseBucket
+
+  def deleteAllRunningJob() = {
+//
+//    findAllRunningJob map {
+//      recs =>
+//        recs map (rec => deleteRunningJoById(rec.getId))
+//    } recover {
+//      case _ => println("Error in deleting rows. Problably no rows were found")
+//    }
+
+    deleteAll(findAllRunningJob,deleteRunningJoById)
+
+  }
+
+  def deleteAll[T <: InternalId](findAll : () => Future[Seq[T]], delete: (String) =>Future[Either[String,Any]]) = {
+    findAll() map {
+      recs =>
+        recs map (rec => delete(rec.getId))
+    } recover {
+      case _ => println("Error in deleting rows. Problably no rows were found")
+    }
+  }
 
   def saveAlert(alert: EmailAlert): Future[Either[String,Any]] = {
     val id = UUID.randomUUID().toString
@@ -51,7 +74,7 @@ trait JackRepository {
     }
   }
 
-  def saveARunningJackJob(job: RunningJob): Future[Either[String,Any]] = {
+  def saveRunningJackJob(job: RunningJob): Future[Either[String,Any]] = {
     val id = job.getId
     runningJobBucket.set[RunningJob](id, job) map {
       case o: OpResult if o.isSuccess => Left(id)
@@ -81,8 +104,16 @@ trait JackRepository {
     }
   }
 
-  def findAll(): Future[List[Job]] = {
-    bucket.find[Job]("jack", "by_name")(new Query().setIncludeDocs(true).setStale(Stale.FALSE))
+  def findAllRunningJob(): Future[List[RunningJob]] = {
+    runningJobBucket.find[RunningJob]("runningJob", "by_jobId")(new Query().setIncludeDocs(true).setStale(Stale.FALSE))
+  }
+
+  def findAllAlert(): Future[List[EmailAlert]] = {
+    alertsBucket.find[EmailAlert]("alert", "by_id")(new Query().setIncludeDocs(true).setStale(Stale.FALSE))
+  }
+
+  def findAllJob(): Future[List[Job]] = {
+    alertsBucket.find[Job]("default", "by_id")(new Query().setIncludeDocs(true).setStale(Stale.FALSE))
   }
 
   def findByName(name: String): Future[Option[Jack]] = {
@@ -100,16 +131,20 @@ trait JackRepository {
 
 
   def findRunningJobToExecute() : Future[Seq[RunningJob]] = {
-
-    val query = new Query().setIncludeDocs(true).setLimit(1)
-      .setRangeStart(ComplexKey.of(timeOfDay(DateTime.now),java.lang.Boolean.TRUE,java.lang.Boolean.TRUE)).
-      setRangeEnd(ComplexKey.of(timeOfDay(DateTime.now.plusMinutes(10)),java.lang.Boolean.TRUE,java.lang.Boolean.FALSE)).setStale(Stale.FALSE)
+    val query = new Query().setIncludeDocs(true)
+      .setRangeStart(ComplexKey.of(java.lang.Boolean.TRUE,java.lang.Boolean.FALSE,timeOfDay(DateTime.now))).
+      setRangeEnd(ComplexKey.of(
+        java.lang.Boolean.TRUE,java.lang.Boolean.FALSE,timeOfDay(DateTime.now.plusMinutes(10)))).setStale(Stale.FALSE)
     runningJobBucket.find[RunningJob]("runningJob", "by_time_and_recurring_alert_sent")(query)
   }
 
-  private def timeOfDay(tm: DateTime): Integer = {
-    val nowHour = tm.hourOfDay().get()
-    val nowTime = tm.minuteOfHour().get()
-    TimeOfDay.time(nowHour,nowTime)
+  def findRunningJobToReset() : Future[Seq[RunningJob]] = {
+    val query = new Query().setIncludeDocs(true)
+      .setRangeStart(ComplexKey.of(java.lang.Boolean.TRUE,java.lang.Boolean.TRUE,new Integer("0"))).
+      setRangeEnd(ComplexKey.of(java.lang.Boolean.TRUE,java.lang.Boolean.TRUE,timeOfDay(DateTime.now.minusHours(1)))).setStale(Stale.FALSE)
+    runningJobBucket.find[RunningJob]("runningJob", "by_time_and_recurring_alert_sent")(query)
   }
+
+  private def timeOfDay(tm: DateTime): Integer = TimeOfDay.time(tm.hourOfDay().get(),tm.minuteOfHour().get())
+
 }

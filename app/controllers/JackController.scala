@@ -5,7 +5,7 @@ import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
 import akka.actor.ActorSystem
-import jobs.{Run, TubeServiceFetchActor, HelloActor}
+import jobs._
 import model.{Job, Jack}
 import org.reactivecouchbase.client.OpResult
 import play.api.libs.json._
@@ -36,15 +36,24 @@ class JackController  @Inject() (system: ActorSystem, wsClient:WSClient) extends
     val tubeRepository = getTubRepository
   }
   lazy  val tubeServiceActor = system.actorOf(TubeServiceFetchActor.props(TubeServiceRegistry), "tubeServiceActor")
+  lazy  val runningActor = system.actorOf(RunningJobActor.props(JobServiceImpl), "runningJobActor")
+  lazy  val resetRunningJobActor = system.actorOf(ResetRunningJobActor.props(JobServiceImpl), "resetRunningJobActor")
 
 
-  lazy val cancellable = system.scheduler.schedule(
+  lazy val tubeScheduleJob = system.scheduler.schedule(
     0.microseconds, 10000.milliseconds, tubeServiceActor,  Run("tick"))
 
+  lazy val runningJobScheduleJob = system.scheduler.schedule(
+    0.microseconds, 10000.milliseconds, runningActor,  Run("tick"))
+
+  lazy val resetRunningJobScheduleJob = system.scheduler.schedule(
+    0.microseconds, 10000.milliseconds, resetRunningJobActor,  Run("tick"))
 
   def fetchTubeLine() = Action.async { implicit request =>
 
-      cancellable
+      tubeScheduleJob
+      runningJobScheduleJob
+      resetRunningJobScheduleJob
       Future.successful(Ok(Json.obj("res"->true)))
 
   }
@@ -93,7 +102,7 @@ class JackController  @Inject() (system: ActorSystem, wsClient:WSClient) extends
 
       for {
         Left(id) <- repository.saveAJackJob(jackJob)
-        runningId <- repository.saveARunningJackJob(RunningJob.fromJob(jackJob))
+        runningId <- repository.saveRunningJackJob(RunningJob.fromJob(jackJob))
       }  yield Created.withHeaders("Location" -> ("/api/jack/" + id))
 
     )

@@ -5,6 +5,11 @@ import java.util.UUID
 import org.joda.time.DateTime
 import play.api.libs.json.{JsValue, Writes, Json}
 
+
+trait InternalId {
+  def getId: String
+}
+
 case class Jack(private val id: String = UUID.randomUUID().toString, firstName: String, lastName: String) {
   def getId = this.id
 }
@@ -42,28 +47,31 @@ object MeansOfTransportation {
 
 case class TimeOfDay(hour: Int, min: Int, time: Int = 0) {
 
-  require((min >=0 && min <= 60), s"min : $min cannot be gr than 60")
-  require((hour>=0 && hour <= 24), s"hour : $hour cannot be gr than 24")
+  require((min >= 0 && min <= 60), s"min : $min cannot be gr than 60")
+  require((hour >= 0 && hour <= 24), s"hour : $hour cannot be gr than 24")
 
   def plusMinutes(mins: Int) = {
-    TimeOfDay(hour + (mins + min) / 60, (mins + min) % 60)
+    val h = hour + (mins + min) / 60
+    val m = (mins + min) % 60
+    TimeOfDay(h, m, TimeOfDay.time(h, m))
   }
 }
 
 object TimeOfDay {
 
-  def time(hour: Int,min : Int) = {
+  def time(hour: Int, min: Int) = {
 
-    def minToStrin = if(min<10) s"0$min" else min.toString
+    def minToStrin = if (min < 10) s"0$min" else min.toString
 
     (hour.toString + minToStrin).toInt
   }
+
   def plusMinutes(mins: Int) = TimeOfDay
 
   implicit val format = Json.reads[TimeOfDay]
   implicit val writeformat = new Writes[TimeOfDay] {
 
-    override def writes(o: TimeOfDay): JsValue = Json.obj("hour" -> o.hour, "min" -> o.min, "time" -> time(o.hour,o.min) )
+    override def writes(o: TimeOfDay): JsValue = Json.obj("hour" -> o.hour, "min" -> o.min, "time" -> time(o.hour, o.min))
   }
 
 }
@@ -94,7 +102,7 @@ case class Job(alert: Email,
                journey: Journey,
                private val id: String = UUID.randomUUID().toString,
                active: Boolean = true,
-               onlyOn: Option[DateTime] = None) {
+               onlyOn: Option[DateTime] = None) extends InternalId {
   def getId = this.id
 }
 
@@ -103,18 +111,23 @@ object Job {
 }
 
 
-case class RunningJob(private val id: String = UUID.randomUUID().toString, from: TimeOfDay, to: TimeOfDay, alertSent: Boolean = false, recurring: Boolean = true, jobId: String) {
+case class RunningJob(private val id: String = UUID.randomUUID().toString,
+                      from: TimeOfDay, to: TimeOfDay, alertSent: Boolean = false,
+                      recurring: Boolean = true, jobId: String)
+  extends InternalId {
   def getId = this.id
 }
 
 object RunningJob {
 
-  def fromJob(job: Job) = RunningJob(from = job.journey.startsAt,to = job.journey.startsAt.plusMinutes(job.journey.durationInMin),jobId = job.getId, recurring = job.journey.recurring)
+  def fromJob(job: Job) = RunningJob(from = job.journey.startsAt, to = job.journey.startsAt.plusMinutes(job.journey.durationInMin), jobId = job.getId, recurring = job.journey.recurring)
 
   implicit val format = Json.format[RunningJob]
 }
 
-case class EmailAlert(email: Email, persisted: Option[DateTime], sent: Option[DateTime], jobId: String)
+case class EmailAlert(private val id: String = UUID.randomUUID().toString,email: Email, persisted: Option[DateTime], sent: Option[DateTime], jobId: String) extends InternalId {
+  def getId = this.id
+}
 
 case class JobForJack(runFrom: Int, runTill: Int, alertSent: Boolean, recurring: Boolean)
 
