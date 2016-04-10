@@ -14,8 +14,8 @@ trait JobService extends TubeService with TubeConnector {
 
   def findAndProcessActiveJobs(): Future[Seq[RunningJob]] = {
 
-    def processJobs(jobs: Seq[RunningJob]): Future[Seq[RunningJob]] = {
-      Future.sequence(jobs map(processJob)) map {
+    def process(jobs: Seq[RunningJob], func:(RunningJob) =>Future[Either[String,Any]] ) = {
+      Future.sequence(jobs map(func)) map {
         rs =>
           rs.collect {
             case Left(id) => jobs.find(j => j.getId == id)
@@ -23,9 +23,14 @@ trait JobService extends TubeService with TubeConnector {
       }
     }
 
+    def saveUpdateRunningJob(job: RunningJob):Future[Either[String,Any]] = {
+      repo.saveARunningJackJob(job.copy(alertSent = true))
+    }
+
     for {
      jobs <- repo.findRunningJobToExecute()
-     processed <- processJobs(jobs)
+     processed <- process(jobs,processJob)
+     updated <- process(jobs,saveUpdateRunningJob)
     } yield processed
   }
 
@@ -34,14 +39,12 @@ trait JobService extends TubeService with TubeConnector {
     def processLine(lines: Seq[TFLTubeService], job: Job): Future[Option[EmailAlert]] = {
 
       val allDisr: Seq[Seq[Disruption]] = lines.map { line =>
-        val disruptions = line.lineStatuses collect {
+        line.lineStatuses collect {
           case LineStatus(_, _, _, _, Some(disruption)) => disruption
         }
-        disruptions
       }
 
       if(allDisr.flatten.nonEmpty) {
-
          Future.successful(Some(EmailAlert(email= job.alert, Some(DateTime.now()),None,job.getId)))
       }
       else {
