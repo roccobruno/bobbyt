@@ -17,7 +17,7 @@ class TubeServiceFetchActor(tubeService: TubeService with TubeConnector) extends
     case Run(name: String) =>
 
       tubeService.updateTubeServices map { res =>
-        println("Running job :tube service")
+        println("Running job : tube service")
         sender() ! res
       }
   }

@@ -37,16 +37,15 @@ trait JackRepository {
   def alertsBucket : CouchbaseBucket
 
   def deleteAllRunningJob() = {
-//
-//    findAllRunningJob map {
-//      recs =>
-//        recs map (rec => deleteRunningJoById(rec.getId))
-//    } recover {
-//      case _ => println("Error in deleting rows. Problably no rows were found")
-//    }
-
     deleteAll(findAllRunningJob,deleteRunningJoById)
+  }
 
+  def deleteAllJobs() = {
+    deleteAll(findAllJob,deleteJobById)
+  }
+
+  def deleteAllAlerts() = {
+    deleteAll(findAllAlert,deleteAlertById)
   }
 
   def deleteAll[T <: InternalId](findAll : () => Future[Seq[T]], delete: (String) =>Future[Either[String,Any]]) = {
@@ -54,12 +53,12 @@ trait JackRepository {
       recs =>
         recs map (rec => delete(rec.getId))
     } recover {
-      case _ => println("Error in deleting rows. Problably no rows were found")
+      case _ => println("Error in deleting rows. Probably no rows were found")
     }
   }
 
   def saveAlert(alert: EmailAlert): Future[Either[String,Any]] = {
-    val id = UUID.randomUUID().toString
+    val id = alert.getId
     alertsBucket.set[EmailAlert](id,alert) map {
       case o: OpResult if o.isSuccess => Left(id)
       case o: OpResult => Right(o.getMessage)
@@ -90,8 +89,15 @@ trait JackRepository {
     bucket.get[Job](id)
   }
 
-  def deleteById(id:String) : Future[Either[String,Any]] = {
+  def deleteJobById(id:String) : Future[Either[String,Any]] = {
     bucket.delete(id) map {
+      case o: OpResult if o.isSuccess => Left(id)
+      case o: OpResult => Right(o.getMessage)
+    }
+  }
+
+  def deleteAlertById(id:String) : Future[Either[String,Any]] = {
+    alertsBucket.delete(id) map {
       case o: OpResult if o.isSuccess => Left(id)
       case o: OpResult => Right(o.getMessage)
     }

@@ -38,6 +38,7 @@ class JackController  @Inject() (system: ActorSystem, wsClient:WSClient) extends
   lazy  val tubeServiceActor = system.actorOf(TubeServiceFetchActor.props(TubeServiceRegistry), "tubeServiceActor")
   lazy  val runningActor = system.actorOf(RunningJobActor.props(JobServiceImpl), "runningJobActor")
   lazy  val resetRunningJobActor = system.actorOf(ResetRunningJobActor.props(JobServiceImpl), "resetRunningJobActor")
+  lazy  val alertJobActor = system.actorOf(ProcessAlertsJobActor.props(JobServiceImpl), "alertJobActor")
 
 
   lazy val tubeScheduleJob = system.scheduler.schedule(
@@ -49,11 +50,16 @@ class JackController  @Inject() (system: ActorSystem, wsClient:WSClient) extends
   lazy val resetRunningJobScheduleJob = system.scheduler.schedule(
     0.microseconds, 10000.milliseconds, resetRunningJobActor,  Run("tick"))
 
+  lazy val alertJobScheduleJob = system.scheduler.schedule(
+    0.microseconds, 10000.milliseconds, alertJobActor,  Run("tick"))
+
+
   def fetchTubeLine() = Action.async { implicit request =>
 
       tubeScheduleJob
       runningJobScheduleJob
       resetRunningJobScheduleJob
+      alertJobScheduleJob
       Future.successful(Ok(Json.obj("res"->true)))
 
   }
@@ -67,7 +73,7 @@ class JackController  @Inject() (system: ActorSystem, wsClient:WSClient) extends
 
   def delete(id: String) = Action.async {
     implicit request =>
-      repository.deleteById(id) map {
+      repository.deleteJobById(id) map {
         case Left(id) => Ok
         case _ => InternalServerError
       }

@@ -84,6 +84,8 @@ object Journey {
 }
 
 
+case class EmailToSent(from: String, to: String, body:String)
+
 case class Email(from: String, to: String)
 
 object Email {

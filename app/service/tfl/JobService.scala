@@ -36,6 +36,25 @@ trait JobService extends TubeService with TubeConnector {
     } yield processed
   }
 
+  def processAlerts(): Future[Seq[String]] = {
+    for {
+      alerts <- repo.findAllAlert()
+      emails <- sendEmail(alerts)
+      _ <- deleteAlerts(alerts)
+    } yield alerts map (_.jobId)
+  }
+
+  def sendEmail(alerts: Seq[EmailAlert]) = {
+    //TODO send email
+    val result = alerts map (al => EmailToSent(al.email.from, al.email.to, "BODY"))
+    println(s"EMAIL SENT : $result")
+    Future.successful(result)
+  }
+
+  def deleteAlerts(alerts: Seq[EmailAlert]) = {
+    Future.sequence(alerts map (al => repo.deleteAlertById(al.getId)))
+  }
+
   def findAndResetActiveJobs() = {
     for {
       jobs <- repo.findRunningJobToReset()
