@@ -2,8 +2,8 @@ package repository
 
 import java.util.UUID
 
-import com.couchbase.client.protocol.views.{DesignDocument, ComplexKey, Stale, Query}
-import model.{Job, Bobbit$}
+import com.couchbase.client.protocol.views._
+import model.{Job}
 import org.joda.time.DateTime
 import org.reactivecouchbase.{ReactiveCouchbaseDriver, CouchbaseBucket}
 import org.reactivecouchbase.play.PlayCouchbase
@@ -25,6 +25,83 @@ object BobbitRepository extends BobbitRepository {
   override lazy val runningJobBucket = driver.bucket("runningJob")
   override lazy val alertsBucket = driver.bucket("alert")
 
+  def createRunningJobDesignerDocument() = runningJobBucket.designDocument("runningJob") map {
+
+    case res: DesignDocument => println("designer document present")
+    case _ => {
+      println("designer document not found")
+      val desDoc = new DesignDocument("runningJob")
+        desDoc.getViews.add(new ViewDesign("by_jobId",viewMapFunction))
+        desDoc.getViews.add(new ViewDesign("by_time_and_recurring_alert_sent",viewByTimeMapFunction))
+      runningJobBucket.createDesignDoc(desDoc) map {
+        {
+          case o: OpResult if o.isSuccess => println("designer doc CREATED")
+          case o: OpResult => Right(o.getMessage)
+        }
+      }
+
+    }
+  }
+
+  def createAlertDesignerDocument() = runningJobBucket.designDocument("alert") map {
+
+    case res: DesignDocument => println("designer document present")
+    case _ => {
+      println("designer document not found")
+      val desDoc = new DesignDocument("alert")
+      desDoc.getViews.add(new ViewDesign("by_id",viewByIdMapFunction))
+      alertsBucket.createDesignDoc(desDoc) map {
+        {
+          case o: OpResult if o.isSuccess => println("designer doc CREATED")
+          case o: OpResult => Right(o.getMessage)
+        }
+      }
+
+    }
+  }
+
+  def createJobDesignerDocument() = runningJobBucket.designDocument("job") map {
+
+    case res: DesignDocument => println("designer document present")
+    case _ => {
+      println("designer document not found")
+      val desDoc = new DesignDocument("job")
+      desDoc.getViews.add(new ViewDesign("by_id",viewByIdMapFunction))
+      bucket.createDesignDoc(desDoc) map {
+        {
+          case o: OpResult if o.isSuccess => println("designer doc CREATED")
+          case o: OpResult => Right(o.getMessage)
+        }
+      }
+
+    }
+  }
+
+  val viewMapFunction =
+    """
+      |function (doc, meta) {
+      |  emit(doc.jobId, null);
+      |}
+    """.stripMargin
+
+  val viewByTimeMapFunction =
+    """
+      |function (doc, meta) {
+      |  emit([doc.recurring,doc.alertSent,doc.from.time], null);
+      |}
+    """.stripMargin
+
+  val viewByIdMapFunction =
+    """
+      |function (doc, meta) {
+      |  emit(doc.id, null);
+      |}
+    """.stripMargin
+
+
+  createRunningJobDesignerDocument()
+  createAlertDesignerDocument()
+  createJobDesignerDocument()
 }
 
 
