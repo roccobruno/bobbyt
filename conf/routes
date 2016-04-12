@@ -9,13 +9,13 @@ GET     /                           controllers.Application.index
 GET     /assets/*file               controllers.Assets.versioned(path="/public", file: Asset)
 
 
-#Jack Api
-GET   /api/jack/fetch                     controllers.JackController.fetchTubeLine
-GET    /api/jack/:id                      controllers.JackController.find(id:String)
-POST   /api/jack                          controllers.JackController.save
-DELETE /api/jack/:id                      controllers.JackController.delete(id:String)
+#bobbit Api
+GET   /api/bobbit/fetch                     controllers.BobbitController.fetchTubeLine
+GET    /api/bobbit/:id                      controllers.BobbitController.find(id:String)
+POST   /api/bobbit                          controllers.BobbitController.save
+DELETE /api/bobbit/:id                      controllers.BobbitController.delete(id:String)
 
 #Running job
-GET      /api/jack/running-job/job-id/:id    controllers.JackController.findRunningJobByJobId(id:String)
-GET      /api/jack/running-job/active        controllers.JackController.findActiveRunningJob
-DELETE   /api/jack/running-job/id/:id        controllers.JackController.deleteRunningJob(id:String)
+GET      /api/bobbit/running-job/job-id/:id    controllers.BobbitController.findRunningJobByJobId(id:String)
+GET      /api/bobbit/running-job/active        controllers.BobbitController.findActiveRunningJob
+DELETE   /api/bobbit/running-job/id/:id        controllers.BobbitController.deleteRunningJob(id:String)

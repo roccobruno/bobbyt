@@ -6,12 +6,12 @@ import javax.inject.Inject
 
 import akka.actor.ActorSystem
 import jobs._
-import model.{Job, Jack}
+import model.{Job, Bobbit$}
 import org.reactivecouchbase.client.OpResult
 import play.api.libs.json._
 import play.api.libs.ws.WSClient
 import play.api.mvc.{Request, Result, Action, Controller}
-import repository.{TubeRepository, JackRepository}
+import repository.{TubeRepository, BobbitRepository}
 import service.tfl.{JobService, TubeConnector, TubeService}
 import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -21,8 +21,8 @@ import scala.concurrent.duration._
 import model._
 
 
-class JackController  @Inject() (system: ActorSystem, wsClient:WSClient) extends Controller with JsonParser {
-  val repository: JackRepository = JackRepository
+class BobbitController  @Inject() (system: ActorSystem, wsClient:WSClient) extends Controller with JsonParser {
+  val repository: BobbitRepository = BobbitRepository
   def getTubRepository = TubeRepository
 
   object JobServiceImpl extends JobService {
@@ -104,12 +104,12 @@ class JackController  @Inject() (system: ActorSystem, wsClient:WSClient) extends
 
 
   def save() = Action.async(parse.json) { implicit request =>
-    withJsonBody[Job](jackJob =>
+    withJsonBody[Job](job =>
 
       for {
-        Left(id) <- repository.saveAJackJob(jackJob)
-        runningId <- repository.saveRunningJackJob(RunningJob.fromJob(jackJob))
-      }  yield Created.withHeaders("Location" -> ("/api/jack/" + id))
+        Left(id) <- repository.saveJob(job)
+        runningId <- repository.saveRunningJob(RunningJob.fromJob(job))
+      }  yield Created.withHeaders("Location" -> ("/api/bobbit/" + id))
 
     )
   }

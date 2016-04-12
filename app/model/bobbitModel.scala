@@ -10,13 +10,13 @@ trait InternalId {
   def getId: String
 }
 
-case class Jack(private val id: String = UUID.randomUUID().toString, firstName: String, lastName: String) {
+case class Bobbit(private val id: String = UUID.randomUUID().toString, firstName: String, lastName: String) {
   def getId = this.id
 }
 
-object Jack {
+object Bobbit {
 
-  implicit val format = Json.format[Jack]
+  implicit val format = Json.format[Bobbit]
 }
 
 
@@ -131,12 +131,12 @@ case class EmailAlert(private val id: String = UUID.randomUUID().toString,email:
   def getId = this.id
 }
 
-case class JobForJack(runFrom: Int, runTill: Int, alertSent: Boolean, recurring: Boolean)
+case class JobForBobbit(runFrom: Int, runTill: Int, alertSent: Boolean, recurring: Boolean)
 
 object EmailAlert {
   implicit val format = Json.format[EmailAlert]
 }
 
-object JobForJack {
-  implicit val format = Json.format[JobForJack]
+object JobForBobbit {
+  implicit val format = Json.format[JobForBobbit]
 }

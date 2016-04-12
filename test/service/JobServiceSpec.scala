@@ -12,7 +12,7 @@ import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.mock.MockitoSugar
 import org.scalatest.{Matchers, OptionValues, WordSpecLike}
 import play.api.libs.ws.WSClient
-import repository.{JackRepository, TubeRepository}
+import repository.{BobbitRepository, TubeRepository}
 import service.tfl.JobService
 import scala.concurrent._
 import scala.concurrent.duration._
@@ -24,11 +24,11 @@ class JobServiceSpec extends  WordSpecLike with OptionValues with ScalaFutures {
   trait Setup {
 
 
-     val repoMock = mock(classOf[JackRepository])
+     val repoMock = mock(classOf[BobbitRepository])
      val tubeMock = mock(classOf[TubeRepository])
 
      val service = new JobService {
-      override val repo: JackRepository = repoMock
+      override val repo: BobbitRepository = repoMock
       override val ws: WSClient = mock(classOf[WSClient])
       override val tubeRepository: TubeRepository = tubeMock
 
@@ -56,12 +56,12 @@ class JobServiceSpec extends  WordSpecLike with OptionValues with ScalaFutures {
       when(tubeMock.findById("central")).thenReturn(Future.successful(Some(tubeService)))
       when(repoMock.findById(job.getId)).thenReturn(Future.successful(Some(job)))
       when(repoMock.saveAlert(any[EmailAlert])).thenReturn(Future.successful(Left("id")))
-      when(repoMock.saveRunningJackJob(any[RunningJob])).thenReturn(Future.successful(Left("id")))
+      when(repoMock.saveRunningJob(any[RunningJob])).thenReturn(Future.successful(Left("id")))
 
       Await.result(service.findAndProcessActiveJobs(),100 millisecond)
 
       verify(repoMock, times(1)).saveAlert(any[EmailAlert])
-      verify(repoMock, times(1)).saveRunningJackJob(runningJob.copy(alertSent = true))
+      verify(repoMock, times(1)).saveRunningJob(runningJob.copy(alertSent = true))
 
     }
 
@@ -80,7 +80,7 @@ class JobServiceSpec extends  WordSpecLike with OptionValues with ScalaFutures {
       when(tubeMock.findById("central")).thenReturn(Future.successful(Some(tubeService)))
       when(repoMock.findById(job.getId)).thenReturn(Future.successful(Some(job)))
       when(repoMock.saveAlert(any[EmailAlert])).thenReturn(Future.successful(Left("id")))
-      when(repoMock.saveRunningJackJob(any[RunningJob])).thenReturn(Future.successful(Left("id")))
+      when(repoMock.saveRunningJob(any[RunningJob])).thenReturn(Future.successful(Left("id")))
 
       Await.result(service.findAndProcessActiveJobs(),100 millisecond)
 
@@ -104,12 +104,12 @@ class JobServiceSpec extends  WordSpecLike with OptionValues with ScalaFutures {
       when(tubeMock.findById("northern")).thenReturn(Future.successful(Some(tubeService2)))
       when(repoMock.findById(job.getId)).thenReturn(Future.successful(Some(job)))
       when(repoMock.saveAlert(any[EmailAlert])).thenReturn(Future.successful(Left("id")))
-      when(repoMock.saveRunningJackJob(any[RunningJob])).thenReturn(Future.successful(Left("id")))
+      when(repoMock.saveRunningJob(any[RunningJob])).thenReturn(Future.successful(Left("id")))
 
       Await.result(service.findAndProcessActiveJobs(),100 millisecond)
 
       verify(repoMock, times(1)).saveAlert(any[EmailAlert])
-      verify(repoMock, times(1)).saveRunningJackJob(runningJob.copy(alertSent = true))
+      verify(repoMock, times(1)).saveRunningJob(runningJob.copy(alertSent = true))
 
     }
 
@@ -131,7 +131,7 @@ class JobServiceSpec extends  WordSpecLike with OptionValues with ScalaFutures {
       when(tubeMock.findById("northern")).thenReturn(Future.successful(Some(tubeService2)))
       when(repoMock.findById(job.getId)).thenReturn(Future.successful(Some(job)))
       when(repoMock.saveAlert(any[EmailAlert])).thenReturn(Future.successful(Left("id")))
-      when(repoMock.saveRunningJackJob(any[RunningJob])).thenReturn(Future.successful(Left("id")))
+      when(repoMock.saveRunningJob(any[RunningJob])).thenReturn(Future.successful(Left("id")))
 
       val res = Await.result(service.findAndProcessActiveJobs(),100 millisecond)
       res.size should be(2)
@@ -139,8 +139,8 @@ class JobServiceSpec extends  WordSpecLike with OptionValues with ScalaFutures {
       res contains(runningJob2) should be(true)
 
       verify(repoMock, times(2)).saveAlert(any[EmailAlert])
-      verify(repoMock, times(1)).saveRunningJackJob(runningJob.copy(alertSent = true))
-      verify(repoMock, times(1)).saveRunningJackJob(runningJob2.copy(alertSent = true))
+      verify(repoMock, times(1)).saveRunningJob(runningJob.copy(alertSent = true))
+      verify(repoMock, times(1)).saveRunningJob(runningJob2.copy(alertSent = true))
 
     }
 
@@ -158,12 +158,12 @@ class JobServiceSpec extends  WordSpecLike with OptionValues with ScalaFutures {
       when(tubeMock.findById("central")).thenReturn(Future.successful(Some(tubeService)))
       when(repoMock.findById(job.getId)).thenReturn(Future.successful(Some(job)))
       when(repoMock.saveAlert(any[EmailAlert])).thenReturn(Future.successful(Left("id")))
-      when(repoMock.saveRunningJackJob(any[RunningJob])).thenReturn(Future.successful(Left("id")))
+      when(repoMock.saveRunningJob(any[RunningJob])).thenReturn(Future.successful(Left("id")))
 
       Await.result(service.findAndProcessActiveJobs(),100 millisecond)
 
       verify(repoMock, times(1)).saveAlert(any[EmailAlert])
-      verify(repoMock, times(1)).saveRunningJackJob(runningJob.copy(alertSent = true))
+      verify(repoMock, times(1)).saveRunningJob(runningJob.copy(alertSent = true))
 
     }
   }

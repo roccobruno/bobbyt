@@ -3,14 +3,14 @@ package service.tfl
 import model._
 import org.joda.time.DateTime
 import org.reactivecouchbase.client.OpResult
-import repository.JackRepository
+import repository.BobbitRepository
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
 trait JobService extends TubeService with TubeConnector {
 
-  val repo: JackRepository
+  val repo: BobbitRepository
 
   val ALERT_SENT = true
   val ALERT_NOT_SENT = false
@@ -25,7 +25,7 @@ trait JobService extends TubeService with TubeConnector {
   }
 
   private def saveUpdateRunningJob(update: Boolean)(job: RunningJob): Future[Either[String, Any]] = {
-    repo.saveRunningJackJob(job.copy(alertSent = update))
+    repo.saveRunningJob(job.copy(alertSent = update))
   }
 
   def findAndProcessActiveJobs(): Future[Seq[RunningJob]] = {

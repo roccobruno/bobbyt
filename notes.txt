@@ -8,7 +8,7 @@ model:
 //Alert
 //EmailAlert
 
-//JobForJack(runFrom + runTo + alertSent + recurring)
+//JobForBobbit(runFrom + runTo + alertSent + recurring)
 
 // ++ TFL model
 // ++ TRAIN model

@@ -13,22 +13,22 @@ import play.api.test.{WithApplication, FakeRequest}
 import play.api.test.Helpers._
 
 @RunWith(classOf[JUnitRunner])
-class JackControllerSpec extends Specification {
+class BobbitControllerSpec extends Specification {
 
-  "jack controller" should {
+  "bobbit controller" should {
 
     val id = "12345"
 
 
-    "return 201 when posting a jack record" in new WithApplication {
+    "return 201 when posting a bobbit record" in new WithApplication {
 
       private val id = UUID.randomUUID().toString
       private val job = Job(alert = Email("from@mss.it","from@mss.it"),journey= Journey(true,MeansOfTransportation(Seq(TubeLine("central","central")),Nil),TimeOfDay(8,30),40))
-      val response = route(implicitApp,FakeRequest(POST, "/api/jack").withBody(Json.toJson(job)))
+      val response = route(implicitApp,FakeRequest(POST, "/api/bobbit").withBody(Json.toJson(job)))
       status(response.get) must equalTo(CREATED)
 
       val getResource = headers(response.get).get("Location").get
-      getResource must be startWith("/api/jack")
+      getResource must be startWith("/api/bobbit")
 
       val getRec = route(implicitApp,FakeRequest(GET, getResource)).get
 
@@ -54,11 +54,11 @@ class JackControllerSpec extends Specification {
       private val jobStartsAtTime = TimeOfDay(hourOfTheDay, minOfTheDay, TimeOfDay.time(hourOfTheDay, minOfTheDay))
       private val job = Job(alert = Email("from@mss.it","from@mss.it"),journey=
         Journey(true,MeansOfTransportation(Seq(TubeLine("northern","northern")),Nil),jobStartsAtTime,40))
-      val response = route(implicitApp,FakeRequest(POST, "/api/jack").withBody(Json.toJson(job)))
+      val response = route(implicitApp,FakeRequest(POST, "/api/bobbit").withBody(Json.toJson(job)))
       status(response.get) must equalTo(CREATED)
 
       val getResource = headers(response.get).get("Location").get
-      getResource must be startWith("/api/jack")
+      getResource must be startWith("/api/bobbit")
 
       val getRec = route(implicitApp,FakeRequest(GET, getResource)).get
       status(getRec) must equalTo(OK)
@@ -66,17 +66,17 @@ class JackControllerSpec extends Specification {
       val jobId = json.getId
 
 
-      val runningJobResp = route(implicitApp,FakeRequest(GET,s"/api/jack/running-job/job-id/$jobId")).get
+      val runningJobResp = route(implicitApp,FakeRequest(GET,s"/api/bobbit/running-job/job-id/$jobId")).get
       status(runningJobResp) must equalTo(OK)
       val runningJobJson: RunningJob = contentAsJson(runningJobResp).as[RunningJob]
 
       runningJobJson.from must equalTo(jobStartsAtTime)
 
-      val activeRunningJobResp = route(implicitApp,FakeRequest(GET,s"/api/jack/running-job/active")).get
+      val activeRunningJobResp = route(implicitApp,FakeRequest(GET,s"/api/bobbit/running-job/active")).get
       status(runningJobResp) must equalTo(OK)
       contentAsJson(activeRunningJobResp).as[Seq[RunningJob]].size must equalTo(1)
 
-      val delRunningJobResponse = route(implicitApp,FakeRequest(DELETE, s"/api/jack/running-job/id/${runningJobJson.getId}"))
+      val delRunningJobResponse = route(implicitApp,FakeRequest(DELETE, s"/api/bobbit/running-job/id/${runningJobJson.getId}"))
       status(delRunningJobResponse.get) must equalTo(OK)
 
       val delResponse = route(implicitApp,FakeRequest(DELETE, getResource))
