@@ -1,7 +1,7 @@
 package jobs
 
 import akka.actor.{Actor, Props}
-import service.tfl.JobService
+import service.JobService
 import scala.concurrent.ExecutionContext.Implicits.global
 
 object ProcessAlertsJobActor{

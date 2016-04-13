@@ -1,12 +1,12 @@
-package service.tfl
+package service
 
 import model._
 import org.joda.time.DateTime
-import org.reactivecouchbase.client.OpResult
 import repository.BobbitRepository
+import service.tfl.{TubeConnector, TubeService}
 
-import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 trait JobService extends TubeService with TubeConnector {
 
@@ -46,7 +46,7 @@ trait JobService extends TubeService with TubeConnector {
 
   def sendEmail(alerts: Seq[EmailAlert]) = {
     //TODO send email
-    val result = alerts map (al => EmailToSent(al.email.from, al.email.to, "BODY"))
+    val result = alerts map (al => EmailToSent(al.email.from, EmailAddress(al.email.to), "BODY",None,None))
     println(s"EMAIL SENT : $result")
     Future.successful(result)
   }

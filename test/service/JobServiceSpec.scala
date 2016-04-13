@@ -11,9 +11,10 @@ import org.scalatest
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.mock.MockitoSugar
 import org.scalatest.{Matchers, OptionValues, WordSpecLike}
+import play.api.Configuration
 import play.api.libs.ws.WSClient
 import repository.{BobbitRepository, TubeRepository}
-import service.tfl.JobService
+import service.JobService
 import scala.concurrent._
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Promise, Future}
@@ -35,7 +36,9 @@ class JobServiceSpec extends  WordSpecLike with OptionValues with ScalaFutures {
       override def apiId: String = ""
 
       override def apiKey: String = ""
-    }
+
+       override val configuration: Configuration = mock(classOf[Configuration])
+     }
 
   }
 

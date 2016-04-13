@@ -8,11 +8,13 @@ import akka.actor.ActorSystem
 import jobs._
 import model.{Job, Bobbit$}
 import org.reactivecouchbase.client.OpResult
+import play.api.{Configuration, Environment}
 import play.api.libs.json._
 import play.api.libs.ws.WSClient
 import play.api.mvc.{Request, Result, Action, Controller}
 import repository.{TubeRepository, BobbitRepository}
-import service.tfl.{JobService, TubeConnector, TubeService}
+import service.{MailGunService, JobService}
+import service.tfl.{TubeConnector, TubeService}
 import scala.concurrent.ExecutionContext.Implicits.global
 
 import scala.concurrent.Future
@@ -21,7 +23,7 @@ import scala.concurrent.duration._
 import model._
 
 
-class BobbitController  @Inject() (system: ActorSystem, wsClient:WSClient) extends Controller with JsonParser {
+class BobbitController  @Inject() (system: ActorSystem, wsClient:WSClient, conf: Configuration) extends Controller with JsonParser {
   val repository: BobbitRepository = BobbitRepository
   def getTubRepository = TubeRepository
 
@@ -29,12 +31,24 @@ class BobbitController  @Inject() (system: ActorSystem, wsClient:WSClient) exten
     val repo = repository
     val ws = wsClient
     val tubeRepository = getTubRepository
+    override val configuration: Configuration = conf
+  }
+
+  object MailGunService extends MailGunService {
+    override val ws: WSClient = wsClient
+
+    override def mailGunApiKey = conf.getString("mailgun-api-key").getOrElse( throw new IllegalStateException("no configuration found for mailGun apiKey"))
+
+    override def mailGunHost: String = conf.getString("mailgun-host").getOrElse( throw new IllegalStateException("no configuration found for mailGun host"))
   }
 
   object TubeServiceRegistry extends TubeService with TubeConnector {
     val ws = wsClient
     val tubeRepository = getTubRepository
+    override val configuration: Configuration = conf
   }
+
+
   lazy  val tubeServiceActor = system.actorOf(TubeServiceFetchActor.props(TubeServiceRegistry), "tubeServiceActor")
   lazy  val runningActor = system.actorOf(RunningJobActor.props(JobServiceImpl), "runningJobActor")
   lazy  val resetRunningJobActor = system.actorOf(ResetRunningJobActor.props(JobServiceImpl), "resetRunningJobActor")
@@ -42,16 +56,16 @@ class BobbitController  @Inject() (system: ActorSystem, wsClient:WSClient) exten
 
 
   lazy val tubeScheduleJob = system.scheduler.schedule(
-    0.microseconds, 10000.milliseconds, tubeServiceActor,  Run("tick"))
+    0.microseconds, 10000.milliseconds, tubeServiceActor,  Run("run"))
 
   lazy val runningJobScheduleJob = system.scheduler.schedule(
-    0.microseconds, 10000.milliseconds, runningActor,  Run("tick"))
+    0.microseconds, 10000.milliseconds, runningActor,  Run("run"))
 
   lazy val resetRunningJobScheduleJob = system.scheduler.schedule(
-    0.microseconds, 10000.milliseconds, resetRunningJobActor,  Run("tick"))
+    0.microseconds, 10000.milliseconds, resetRunningJobActor,  Run("run"))
 
   lazy val alertJobScheduleJob = system.scheduler.schedule(
-    0.microseconds, 10000.milliseconds, alertJobActor,  Run("tick"))
+    0.microseconds, 10000.milliseconds, alertJobActor,  Run("run"))
 
 
   def fetchTubeLine() = Action.async { implicit request =>
