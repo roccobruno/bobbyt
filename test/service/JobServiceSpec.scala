@@ -2,6 +2,7 @@ package service
 
 import java.util.UUID
 
+import _root_.util.Testing
 import model._
 import org.joda.time.DateTime
 import org.mockito.Matchers.any
@@ -20,7 +21,7 @@ import scala.concurrent.duration._
 import scala.concurrent.{Await, Promise, Future}
 import org.scalatest.Matchers._
 import org.mockito.Matchers.{eq => meq, _}
-class JobServiceSpec extends  WordSpecLike with OptionValues with ScalaFutures {
+class JobServiceSpec extends  Testing {
 
   trait Setup {
 
@@ -61,7 +62,7 @@ class JobServiceSpec extends  WordSpecLike with OptionValues with ScalaFutures {
       when(repoMock.saveAlert(any[EmailAlert])).thenReturn(Future.successful(Left("id")))
       when(repoMock.saveRunningJob(any[RunningJob])).thenReturn(Future.successful(Left("id")))
 
-      Await.result(service.findAndProcessActiveJobs(),100 millisecond)
+      await(service.findAndProcessActiveJobs())
 
       verify(repoMock, times(1)).saveAlert(any[EmailAlert])
       verify(repoMock, times(1)).saveRunningJob(runningJob.copy(alertSent = true))
@@ -85,7 +86,7 @@ class JobServiceSpec extends  WordSpecLike with OptionValues with ScalaFutures {
       when(repoMock.saveAlert(any[EmailAlert])).thenReturn(Future.successful(Left("id")))
       when(repoMock.saveRunningJob(any[RunningJob])).thenReturn(Future.successful(Left("id")))
 
-      Await.result(service.findAndProcessActiveJobs(),100 millisecond)
+      await(service.findAndProcessActiveJobs())
 
       verify(repoMock, times(0)).saveAlert(any[EmailAlert])
     }
@@ -109,7 +110,7 @@ class JobServiceSpec extends  WordSpecLike with OptionValues with ScalaFutures {
       when(repoMock.saveAlert(any[EmailAlert])).thenReturn(Future.successful(Left("id")))
       when(repoMock.saveRunningJob(any[RunningJob])).thenReturn(Future.successful(Left("id")))
 
-      Await.result(service.findAndProcessActiveJobs(),100 millisecond)
+      await(service.findAndProcessActiveJobs())
 
       verify(repoMock, times(1)).saveAlert(any[EmailAlert])
       verify(repoMock, times(1)).saveRunningJob(runningJob.copy(alertSent = true))
@@ -136,7 +137,7 @@ class JobServiceSpec extends  WordSpecLike with OptionValues with ScalaFutures {
       when(repoMock.saveAlert(any[EmailAlert])).thenReturn(Future.successful(Left("id")))
       when(repoMock.saveRunningJob(any[RunningJob])).thenReturn(Future.successful(Left("id")))
 
-      val res = Await.result(service.findAndProcessActiveJobs(),100 millisecond)
+      val res = await(service.findAndProcessActiveJobs())
       res.size should be(2)
       res contains(runningJob) should be(true)
       res contains(runningJob2) should be(true)
@@ -163,7 +164,7 @@ class JobServiceSpec extends  WordSpecLike with OptionValues with ScalaFutures {
       when(repoMock.saveAlert(any[EmailAlert])).thenReturn(Future.successful(Left("id")))
       when(repoMock.saveRunningJob(any[RunningJob])).thenReturn(Future.successful(Left("id")))
 
-      Await.result(service.findAndProcessActiveJobs(),100 millisecond)
+      await(service.findAndProcessActiveJobs())
 
       verify(repoMock, times(1)).saveAlert(any[EmailAlert])
       verify(repoMock, times(1)).saveRunningJob(runningJob.copy(alertSent = true))
