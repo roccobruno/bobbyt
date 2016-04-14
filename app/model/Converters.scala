@@ -7,15 +7,15 @@ import play.api.libs.json._
 
 object Converters {
 
-  def emailToFormBody(email: EmailToSent): Map[String, Seq[String]] = {
+  def emailToFormBody(email: EmailToSent): Map[String, String] = {
     val mandatoryFields = Map(
       "from" -> email.from,
-      "to" -> email.to.value,
+      "to" -> email.to,
       "subject" -> email.subject.getOrElse(""),
-      "text" -> email.body,
+      "text" -> email.text,
       "html" -> email.htmlBody.getOrElse("")
     )
-    (mandatoryFields).mapValues(Seq(_))
+    (mandatoryFields)
   }
 
 }

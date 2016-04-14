@@ -6,7 +6,7 @@ import javax.inject.Inject
 
 import akka.actor.ActorSystem
 import jobs._
-import model.{Job, Bobbit$}
+import model.{Job}
 import org.reactivecouchbase.client.OpResult
 import play.api.{Configuration, Environment}
 import play.api.libs.json._
@@ -71,10 +71,9 @@ class BobbitController  @Inject() (system: ActorSystem, wsClient:WSClient, conf:
   lazy val alertJobScheduleJob = system.scheduler.schedule(
     0.microseconds, 10000.milliseconds, alertJobActor,  Run("run"))
 
-
   def fetchTubeLine() = Action.async { implicit request =>
 
-      tubeScheduleJob
+//      tubeScheduleJob
       runningJobScheduleJob
       resetRunningJobScheduleJob
       alertJobScheduleJob

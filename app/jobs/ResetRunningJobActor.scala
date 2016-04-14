@@ -16,7 +16,7 @@ class ResetRunningJobActor(jobService: JobService) extends Actor {
     case Run(name: String) =>
 
       jobService.findAndResetActiveJobs() map { res =>
-        println(s"Running job : reset job - n:${res}")
+        println(s"Running job : reset job - n:${res.size}")
         sender() ! res
       }
   }

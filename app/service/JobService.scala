@@ -45,9 +45,7 @@ trait JobService extends TubeService with TubeConnector with MailGunService {
   }
 
   def sendAlert(alerts: Seq[EmailAlert]): Future[Seq[MailgunSendResponse]] = {
-    //TODO send email
-    val result = alerts map (al => EmailToSent(al.email.from, EmailAddress(al.email.to), "BODY",None,None))
-
+    val result = alerts map (al => EmailToSent(al.email.from, al.email.to, "BODY",Some("test"),None))
     Future.sequence(result map (sendEmail))
 
   }

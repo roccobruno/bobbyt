@@ -39,6 +39,10 @@ class JobServiceSpec extends  Testing {
       override def apiKey: String = ""
 
        override val configuration: Configuration = mock(classOf[Configuration])
+
+       override def mailGunApiKey: String = ""
+
+       override def mailGunHost: String = ""
      }
 
   }
@@ -48,7 +52,7 @@ class JobServiceSpec extends  Testing {
 
     "create an alert" in  new Setup {
 
-      val job = Job(alert = Email("from@mss.it", "from@mss.it"), journey = Journey(true,
+      val job = Job(alert = Email(EmailAddress("from@mss.it"), EmailAddress("from@mss.it")), journey = Journey(true,
         MeansOfTransportation(Seq(TubeLine("central", "central")), Nil), TimeOfDay(8, 30), 40))
 
       val lineStatus = LineStatus(10, "", None, Nil, Some(Disruption("minor-delay", "", "", None, None)))
@@ -72,7 +76,7 @@ class JobServiceSpec extends  Testing {
 
     "create no alert in case of no disruption" in new Setup {
 
-      val job = Job(alert = Email("from@mss.it", "from@mss.it"), journey = Journey(true,
+      val job = Job(alert = Email(EmailAddress("from@mss.it"), EmailAddress("from@mss.it")), journey = Journey(true,
         MeansOfTransportation(Seq(TubeLine("central", "central")), Nil), TimeOfDay(8, 30), 40))
 
       val lineStatus = LineStatus(10, "", None, Nil, None)
@@ -94,7 +98,7 @@ class JobServiceSpec extends  Testing {
 
     "create one alert when multiple disruption for same journey " in  new Setup {
 
-      val job = Job(alert = Email("from@mss.it", "from@mss.it"), journey = Journey(true,
+      val job = Job(alert = Email(EmailAddress("from@mss.it"), EmailAddress("from@mss.it")), journey = Journey(true,
         MeansOfTransportation(Seq(TubeLine("central", "central")), Nil), TimeOfDay(8, 30), 40))
 
       val lineStatus = LineStatus(10, "", None, Nil, Some(Disruption("minor-delay", "", "", None, None)))
@@ -120,7 +124,7 @@ class JobServiceSpec extends  Testing {
 
     "create two alert when multiple disruption for two journeys " in  new Setup {
 
-      val job = Job(alert = Email("from@mss.it", "from@mss.it"), journey = Journey(true,
+      val job = Job(alert = Email(EmailAddress("from@mss.it"), EmailAddress("from@mss.it")), journey = Journey(true,
         MeansOfTransportation(Seq(TubeLine("central", "central")), Nil), TimeOfDay(8, 30), 40))
 
       val lineStatus = LineStatus(10, "", None, Nil, Some(Disruption("minor-delay", "", "", None, None)))
@@ -150,7 +154,7 @@ class JobServiceSpec extends  Testing {
 
     "create an alert and update the running job state" in  new Setup {
 
-      val job = Job(alert = Email("from@mss.it", "from@mss.it"), journey = Journey(true,
+      val job = Job(alert = Email(EmailAddress("from@mss.it"), EmailAddress("from@mss.it")), journey = Journey(true,
         MeansOfTransportation(Seq(TubeLine("central", "central")), Nil), TimeOfDay(8, 30), 40))
 
       val lineStatus = LineStatus(10, "", None, Nil, Some(Disruption("minor-delay", "", "", None, None)))

@@ -3,7 +3,7 @@ package service
 import java.net.ConnectException
 import java.util.concurrent.TimeoutException
 
-import model.{MailgunSendResponse, EmailToSent}
+import model.{Converters, MailgunSendResponse, EmailToSent}
 import org.apache.commons.codec.binary.Base64
 import play.api.http.{Writeable, HeaderNames}
 import play.api.libs.json.Json
@@ -30,7 +30,9 @@ trait MailGunService {
   def is5xx(status: Int) = status >= 500 && status < 600
 
   def sendEmail(emailToSent: EmailToSent) : Future[MailgunSendResponse] = {
-    ws.url(mailGunUrl).withHeaders((HeaderNames.AUTHORIZATION, authValue)).post(Json.toJson(emailToSent)) map {
+    ws.url(mailGunUrl).withHeaders((HeaderNames.AUTHORIZATION, authValue)).withQueryString("to" -> emailToSent.to,
+    "from" ->emailToSent.from, "text"-> emailToSent.text,"subject"->emailToSent.subject.get).
+      post(Json.parse("{}")) map {
       response =>
         response.status match {
           case status if is2xx(status) => response.json.as[MailgunSendResponse]
