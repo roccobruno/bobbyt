@@ -72,15 +72,15 @@ class BobbitControllerSpec extends Specification {
 
       runningJobJson.from must equalTo(jobStartsAtTime)
 
-//      val activeRunningJobResp = route(implicitApp,FakeRequest(GET,s"/api/bobbit/running-job/active")).get
-//      status(runningJobResp) must equalTo(OK)
-//      contentAsJson(activeRunningJobResp).as[Seq[RunningJob]].size must equalTo(1)
-//
-//      val delRunningJobResponse = route(implicitApp,FakeRequest(DELETE, s"/api/bobbit/running-job/id/${runningJobJson.getId}"))
-//      status(delRunningJobResponse.get) must equalTo(OK)
-//
-//      val delResponse = route(implicitApp,FakeRequest(DELETE, getResource))
-//      status(delResponse.get) must equalTo(OK)
+      val activeRunningJobResp = route(implicitApp,FakeRequest(GET,s"/api/bobbit/running-job/active")).get
+      status(runningJobResp) must equalTo(OK)
+      contentAsJson(activeRunningJobResp).as[Seq[RunningJob]].size must equalTo(1)
+
+      val delRunningJobResponse = route(implicitApp,FakeRequest(DELETE, s"/api/bobbit/running-job/id/${runningJobJson.getId}"))
+      status(delRunningJobResponse.get) must equalTo(OK)
+
+      val delResponse = route(implicitApp,FakeRequest(DELETE, getResource))
+      status(delResponse.get) must equalTo(OK)
 
 
     }
