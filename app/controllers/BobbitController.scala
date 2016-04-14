@@ -32,6 +32,10 @@ class BobbitController  @Inject() (system: ActorSystem, wsClient:WSClient, conf:
     val ws = wsClient
     val tubeRepository = getTubRepository
     override val configuration: Configuration = conf
+
+    override def mailGunApiKey = conf.getString("mailgun-api-key").getOrElse( throw new IllegalStateException("no configuration found for mailGun apiKey"))
+
+    override def mailGunHost: String = conf.getString("mailgun-host").getOrElse( throw new IllegalStateException("no configuration found for mailGun host"))
   }
 
   object MailGunService extends MailGunService {

@@ -90,7 +90,7 @@ object EmailToSent {
   implicit val format = Json.format[EmailToSent]
 }
 
-case class Email(from: String, to: String)
+case class Email(from: EmailAddress, to: EmailAddress)
 
 object Email {
   implicit val format = Json.format[Email]

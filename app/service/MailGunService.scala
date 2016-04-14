@@ -40,7 +40,7 @@ trait MailGunService {
           case 402 => println("MailGun Request fails with response 402. Try again"); throw new Exception("MailGun request failed. Try again")
           case status if is4xx(status) => println(s"MailGun Request fails with response $status. Unknown status"); throw new Exception(s"MailGun request failed with unknown status: $status. Try again")
           case status if is5xx(status) => println(s"MailGun Request fails with response $status");throw new Exception("MailGun request failed with server error. Try again but later")
-          case status => throw new Exception(s"MailGun Request fais: to $mailGunUrl failed with status $status. Response body: '${response.body}'")
+          case status => throw new Exception(s"MailGun Request fails: to $mailGunUrl failed with status $status. Response body: '${response.body}'")
         }
     } recover {
       case e: TimeoutException => println(s"MailGun Request fails with connection timeout: ${e.printStackTrace()}"); throw new Exception(gatewayTimeoutMessage("POST", mailGunUrl, e))
