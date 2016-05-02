@@ -10,7 +10,7 @@ object Converters {
   def emailToFormBody(email: EmailToSent): Map[String, Seq[String]] = {
     val mandatoryFields = Map(
       "from" -> email.from,
-      "to" -> email.to.value,
+      "to" -> email.to,
       "subject" -> email.subject.getOrElse(""),
       "text" -> email.body,
       "html" -> email.htmlBody.getOrElse("")

@@ -27,11 +27,12 @@ class BobbitRepositorySpec extends Testing {
     "return running job to execute" in new WithApplication {
 
       await(repo.deleteAllRunningJob())
+      await(repo.deleteAllJobs())
 
       val now = DateTime.now.plusMinutes(2)
       val hourOfTheDay = now.hourOfDay().get()
       val minOfTheDay = now.minuteOfHour().get()
-      val startJob = TimeOfDay(hourOfTheDay, minOfTheDay, TimeOfDay.time(hourOfTheDay, minOfTheDay))
+      val startJob = TimeOfDay(hourOfTheDay, minOfTheDay, Some(TimeOfDay.time(hourOfTheDay, minOfTheDay)))
 
       val job = RunningJob(from = startJob, to = startJob.plusMinutes(40), alertSent = false,
         recurring = true, jobId = UUID.randomUUID().toString)
@@ -82,7 +83,7 @@ class BobbitRepositorySpec extends Testing {
   private def startTimeOfDay(nowTime: DateTime) = {
     val hourOfTheDay = nowTime.hourOfDay().get()
     val minOfTheDay = nowTime.minuteOfHour().get()
-    TimeOfDay(hourOfTheDay, minOfTheDay, TimeOfDay.time(hourOfTheDay, minOfTheDay))
+    TimeOfDay(hourOfTheDay, minOfTheDay, Some(TimeOfDay.time(hourOfTheDay, minOfTheDay)))
   }
 
 

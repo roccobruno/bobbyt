@@ -8,10 +8,10 @@ import service.tfl.{TubeConnector, TubeService}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-trait JobService extends TubeService with TubeConnector with MailGunService {
+trait JobService extends TubeService with TubeConnector  {
 
   val repo: BobbitRepository
-
+  val mailGunService: MailGunService
   val ALERT_SENT = true
   val ALERT_NOT_SENT = false
 
@@ -45,10 +45,8 @@ trait JobService extends TubeService with TubeConnector with MailGunService {
   }
 
   def sendAlert(alerts: Seq[EmailAlert]): Future[Seq[MailgunSendResponse]] = {
-    //TODO send email
     val result = alerts map (al => EmailToSent(al.email.from, EmailAddress(al.email.to), "BODY",None,None))
-
-    Future.sequence(result map (sendEmail))
+    Future.sequence(result map (mailGunService.sendEmail))
 
   }
 

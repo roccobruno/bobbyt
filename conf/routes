@@ -19,3 +19,6 @@ DELETE /api/bobbit/:id                      controllers.BobbitController.delete(
 GET      /api/bobbit/running-job/job-id/:id    controllers.BobbitController.findRunningJobByJobId(id:String)
 GET      /api/bobbit/running-job/active        controllers.BobbitController.findActiveRunningJob
 DELETE   /api/bobbit/running-job/id/:id        controllers.BobbitController.deleteRunningJob(id:String)
+
+
+DELETE   /api/bobbit/delete-all                controllers.BobbitController.deleteAll

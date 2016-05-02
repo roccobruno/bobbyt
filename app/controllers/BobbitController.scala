@@ -6,7 +6,7 @@ import javax.inject.Inject
 
 import akka.actor.ActorSystem
 import jobs._
-import model.{Job, Bobbit$}
+import model.{Job}
 import org.reactivecouchbase.client.OpResult
 import play.api.{Configuration, Environment}
 import play.api.libs.json._
@@ -32,10 +32,7 @@ class BobbitController  @Inject() (system: ActorSystem, wsClient:WSClient, conf:
     val ws = wsClient
     val tubeRepository = getTubRepository
     override val configuration: Configuration = conf
-
-    override def mailGunApiKey = conf.getString("mailgun-api-key").getOrElse( throw new IllegalStateException("no configuration found for mailGun apiKey"))
-
-    override def mailGunHost: String = conf.getString("mailgun-host").getOrElse( throw new IllegalStateException("no configuration found for mailGun host"))
+    override val mailGunService: MailGunService = MailGunService
   }
 
   object MailGunService extends MailGunService {
@@ -44,6 +41,9 @@ class BobbitController  @Inject() (system: ActorSystem, wsClient:WSClient, conf:
     override def mailGunApiKey = conf.getString("mailgun-api-key").getOrElse( throw new IllegalStateException("no configuration found for mailGun apiKey"))
 
     override def mailGunHost: String = conf.getString("mailgun-host").getOrElse( throw new IllegalStateException("no configuration found for mailGun host"))
+
+    override def enableSender: Boolean =  conf.getBoolean("mailgun-enabled").getOrElse(false)
+
   }
 
   object TubeServiceRegistry extends TubeService with TubeConnector {
@@ -74,7 +74,7 @@ class BobbitController  @Inject() (system: ActorSystem, wsClient:WSClient, conf:
 
   def fetchTubeLine() = Action.async { implicit request =>
 
-      tubeScheduleJob
+//      tubeScheduleJob
       runningJobScheduleJob
       resetRunningJobScheduleJob
       alertJobScheduleJob
@@ -87,6 +87,16 @@ class BobbitController  @Inject() (system: ActorSystem, wsClient:WSClient, conf:
       case b: Some[Job] => Ok(Json.toJson[Job](b.get))
       case _ => NotFound
     }
+  }
+
+  def deleteAll() = Action.async {
+    implicit request =>
+
+      for {
+        _ <-repository.deleteAllAlerts()
+        _ <-repository.deleteAllJobs()
+        _ <-repository.deleteAllRunningJob()
+      }  yield Ok
   }
 
   def delete(id: String) = Action.async {
@@ -122,14 +132,15 @@ class BobbitController  @Inject() (system: ActorSystem, wsClient:WSClient, conf:
 
 
   def save() = Action.async(parse.json) { implicit request =>
-    withJsonBody[Job](job =>
-
+    val jobId = UUID.randomUUID().toString
+    withJsonBody[Job]{job =>
+      val jobToSave = job.copy(id = Some(jobId))
       for {
-        Left(id) <- repository.saveJob(job)
-        runningId <- repository.saveRunningJob(RunningJob.fromJob(job))
+        Left(id) <- repository.saveJob(jobToSave)
+        runningId <- repository.saveRunningJob(RunningJob.fromJob(jobToSave))
       }  yield Created.withHeaders("Location" -> ("/api/bobbit/" + id))
 
-    )
+    }
   }
 
 

@@ -45,7 +45,7 @@ object MeansOfTransportation {
 }
 
 
-case class TimeOfDay(hour: Int, min: Int, time: Int = 0) {
+case class TimeOfDay(hour: Int, min: Int, time: Option[Int] = Some(0)) {
 
   require((min >= 0 && min <= 60), s"min : $min cannot be gr than 60")
   require((hour >= 0 && hour <= 24), s"hour : $hour cannot be gr than 24")
@@ -53,7 +53,7 @@ case class TimeOfDay(hour: Int, min: Int, time: Int = 0) {
   def plusMinutes(mins: Int) = {
     val h = hour + (mins + min) / 60
     val m = (mins + min) % 60
-    TimeOfDay(h, m, TimeOfDay.time(h, m))
+    TimeOfDay(h, m, Some(TimeOfDay.time(h, m)))
   }
 }
 
@@ -84,13 +84,13 @@ object Journey {
 }
 
 
-case class EmailToSent(from: String, to: EmailAddress, body:String, subject: Option[String], htmlBody: Option[String])
+case class EmailToSent(from: String, to: String, body:String, subject: Option[String] = Some("TEST"), htmlBody: Option[String])
 
 object EmailToSent {
   implicit val format = Json.format[EmailToSent]
 }
 
-case class Email(from: EmailAddress, to: EmailAddress)
+case class Email(nameFrom:String,from: EmailAddress,nameTo:String, to: EmailAddress)
 
 object Email {
   implicit val format = Json.format[Email]
@@ -104,12 +104,14 @@ object Email {
  * @param active
  * @param onlyOn indicates the date on the job must be executed - it cannot be a recurring one
  */
-case class Job(alert: Email,
+case class Job(title:String,
+               alert: Email,
                journey: Journey,
-               private val id: String = UUID.randomUUID().toString,
+               private val id: Option[String] = Some(UUID.randomUUID().toString),
                active: Boolean = true,
                onlyOn: Option[DateTime] = None) extends InternalId {
-  def getId = this.id
+  def getId = this.id.get
+
 }
 
 object Job {
