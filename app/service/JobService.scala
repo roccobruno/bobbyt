@@ -31,8 +31,8 @@ trait JobService extends TubeService with TubeConnector  {
   def findAndProcessActiveJobs(): Future[Seq[RunningJob]] = {
     for {
       jobs <- repo.findRunningJobToExecute()
-      processed <- process(jobs, processJob)
-      updated <- process(jobs, saveUpdateRunningJob(ALERT_SENT))
+      processed <- process(jobs.toSeq, processJob)
+      updated <- process(jobs.toSeq, saveUpdateRunningJob(ALERT_SENT))
     } yield processed
   }
 
@@ -45,7 +45,9 @@ trait JobService extends TubeService with TubeConnector  {
   }
 
   def sendAlert(alerts: Seq[EmailAlert]): Future[Seq[MailgunSendResponse]] = {
-    val result = alerts map (al => EmailToSent(al.email.from, EmailAddress(al.email.to), "BODY",None,None))
+    def from(alert : EmailAlert) = s"${alert.email.nameFrom} <${alert.email.from.value}>"
+    val result = alerts map (al => EmailToSent(from(al), EmailAddress(al.email.to), "",
+      Some("Delays"),Some(mailGunService.emailTemplate(al.email.nameFrom,al.email.nameTo,al.email.from.value))))
     Future.sequence(result map (mailGunService.sendEmail))
 
   }

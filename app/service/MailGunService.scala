@@ -3,7 +3,7 @@ package service
 import java.net.ConnectException
 import java.util.concurrent.TimeoutException
 
-import model.{MailgunId, MailgunSendResponse, EmailToSent}
+import model.{Converters, MailgunId, MailgunSendResponse, EmailToSent}
 import org.apache.commons.codec.binary.Base64
 import play.api.Logger
 import play.api.http.{Writeable, HeaderNames}
@@ -37,12 +37,12 @@ trait MailGunService {
 
   def sendEmail(emailToSent: EmailToSent): Future[MailgunSendResponse] = {
     if (enableSender) {
-      val json = Json.toJson(emailToSent.copy(subject = Some("TEST")))
-      ws.url(mailGunUrl).withHeaders((HeaderNames.AUTHORIZATION, authValue)).post(json) map {
+      ws.url(mailGunUrl).withHeaders((HeaderNames.AUTHORIZATION, authValue)).
+        post(Converters.emailToFormBody(emailToSent)) map {
         response =>
           response.status match {
             case status if is2xx(status) => response.json.as[MailgunSendResponse]
-            case 400 => println("MailGun Request fails with response 400. Check the parameters passed")
+            case 400 => println(s"MailGun Request fails with response 400. Check the parameters passed - ${response.json}")
               throw new Exception("MailGun request failed. Either the APIs are changed" +
                 "or the request sent is wrong.")
             case 401 => println("MailGun Request fails with response 401. Check the api toker key used"); throw new Exception("MailGun request failed. Either the api key is wrong or it is expired")
@@ -57,7 +57,7 @@ trait MailGunService {
       }
     } else {
       Logger.info("MailGunService not enabled!!!... emails won't be sent out")
-      Future.successful(MailgunSendResponse(MailgunId("NO-ID"),"",false))
+      Future.successful(MailgunSendResponse(MailgunId("NO-ID"),""))
     }
   }
 
@@ -68,6 +68,67 @@ trait MailGunService {
   def gatewayTimeoutMessage(verbName: String, url: String, e: Exception): String = {
     s"$verbName of '$url' timed out with message '${e.getMessage}'"
   }
+
+
+  def emailTemplate(nameFrom: String, nameTo: String, emailFrom: String) =
+    s"""
+      |<html>
+      |
+      |	<head>
+      |
+      |		<title>Email Content</title>
+      |
+      |		<!-- Normalize.css -->
+      |        <link rel="stylesheet" type="text/css" href="https://s3-eu-west-1.amazonaws.com/bobbit/email/normalize.css">
+      |
+      |        <!-- Custom Styles -->
+      |        <link rel="stylesheet" type="text/css" href="https://s3-eu-west-1.amazonaws.com/bobbit/email/styles.css">
+      |
+      |        <!--[if lt IE]>
+      |  <script src="http://html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+      |  <![endif]-->
+      |
+      |	</head>
+      |
+      |	<body>
+      |
+      |		<header><a href="www.bobbit.co.uk" id="mainLink"></a></header>
+      |
+      |		<div id="container">
+      |
+      |						<p id="hello">Hi $nameTo,</p>
+      |
+      |				<div id="emailContent">
+      |
+      |						<p>Due to <em>severe delays</em> on the Central line, $nameFrom might be few minutes late at work this morning.</p>
+      |						<p>This message was sent by $nameFrom using <a href="www.bobbit.co.uk" id="link1">Bobbit</a>.</p>
+      |
+      |				</div>
+      |				<div id="signature">
+      |						Kind regards, <br> Bobbit Team
+      |				</div>
+      |
+      |				<div id="line1"></div>
+      |				<div id="line2"></div>
+      |				<div id="line3"></div>
+      |
+      |		</div><!-- end #container -->
+      |
+      |		<footer id="footer">
+      |                <p>&copy; 2016 &bull; Bobbit</p>
+      |
+      |				<small>Message sent by $nameFrom (e-mail: $emailFrom) using <a href="www.bobbit.co.uk" class="links">bobbit.co.uk</a> services.<br>For more information about Tube Lines updates please check <a href="https://tfl.gov.uk" class="links">here.</a></small>
+      |
+      |        </footer>
+      |
+      |	</body>
+      |
+      |
+      |
+      |
+      |
+      |</html>
+    """.stripMargin
 
 }
 

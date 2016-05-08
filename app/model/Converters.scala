@@ -11,8 +11,8 @@ object Converters {
     val mandatoryFields = Map(
       "from" -> email.from,
       "to" -> email.to,
-      "subject" -> email.subject.getOrElse(""),
-      "text" -> email.body,
+      "subject" -> email.subject.getOrElse("TEST"),
+      "text" -> email.text,
       "html" -> email.htmlBody.getOrElse("")
     )
     (mandatoryFields).mapValues(Seq(_))

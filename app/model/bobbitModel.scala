@@ -84,7 +84,7 @@ object Journey {
 }
 
 
-case class EmailToSent(from: String, to: String, body:String, subject: Option[String] = Some("TEST"), htmlBody: Option[String])
+case class EmailToSent(from: String, to: String, text:String, subject: Option[String] = Some("TEST"), htmlBody: Option[String])
 
 object EmailToSent {
   implicit val format = Json.format[EmailToSent]

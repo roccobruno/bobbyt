@@ -29,13 +29,13 @@ object BobbitRepository extends BobbitRepository {
 
     case res: DesignDocument => println("designer document present")
     case _ => {
-      println("designer document not found")
       val desDoc = new DesignDocument("runningJob")
         desDoc.getViews.add(new ViewDesign("by_jobId",viewMapFunction))
-        desDoc.getViews.add(new ViewDesign("by_time_and_recurring_alert_sent",viewByTimeMapFunction))
+        desDoc.getViews.add(new ViewDesign("by_time_and_recurring_alert_sent",viewByStartTimeMapFunction))
+        desDoc.getViews.add(new ViewDesign("by_end_time_and_recurring_alert_sent",viewByEndTimeMapFunction))
       runningJobBucket.createDesignDoc(desDoc) map {
         {
-          case o: OpResult if o.isSuccess => println("designer doc CREATED")
+          case o: OpResult if o.isSuccess => println("designer doc CREATED for runningJob table")
           case o: OpResult => Right(o.getMessage)
         }
       }
@@ -47,7 +47,6 @@ object BobbitRepository extends BobbitRepository {
 
     case res: DesignDocument => println("designer document present")
     case _ => {
-      println("designer document not found")
       val desDoc = new DesignDocument("alert")
       desDoc.getViews.add(new ViewDesign("by_id",viewByIdMapFunction))
       alertsBucket.createDesignDoc(desDoc) map {
@@ -84,10 +83,17 @@ object BobbitRepository extends BobbitRepository {
       |}
     """.stripMargin
 
-  val viewByTimeMapFunction =
+  val viewByStartTimeMapFunction =
     """
       |function (doc, meta) {
       |  emit([doc.recurring,doc.alertSent,doc.from.time], null);
+      |}
+    """.stripMargin
+
+  val viewByEndTimeMapFunction =
+    """
+      |function (doc, meta) {
+      |  emit([doc.recurring,doc.alertSent,doc.to.time], null);
       |}
     """.stripMargin
 
@@ -207,13 +213,31 @@ trait BobbitRepository {
   }
 
 
-  def findRunningJobToExecute() : Future[Seq[RunningJob]] = {
+  def findRunningJobToExecute() : Future[Set[RunningJob]] = {
+    for {
+      first <- findRunningJobToExecuteByStartTime()
+      second <- findRunningJobToExecuteByEndTime()
+    } yield (first ++ second).toSet
+  }
+
+  def findRunningJobToExecuteByStartTime() : Future[Seq[RunningJob]] = {
     val query = new Query().setIncludeDocs(true)
       .setRangeStart(ComplexKey.of(java.lang.Boolean.TRUE,java.lang.Boolean.FALSE,timeOfDay(DateTime.now))).
       setRangeEnd(ComplexKey.of(
-        java.lang.Boolean.TRUE,java.lang.Boolean.FALSE,timeOfDay(DateTime.now.plusMinutes(10)))).setStale(Stale.FALSE)
+        java.lang.Boolean.TRUE,java.lang.Boolean.FALSE,timeOfDay(DateTime.now.plusMinutes(30)))).setStale(Stale.FALSE)
     runningJobBucket.find[RunningJob]("runningJob", "by_time_and_recurring_alert_sent")(query)
   }
+
+  def findRunningJobToExecuteByEndTime() : Future[Seq[RunningJob]] = {
+    val query = new Query().setIncludeDocs(true)
+      .setRangeStart(ComplexKey.of(java.lang.Boolean.TRUE,java.lang.Boolean.FALSE,timeOfDay(DateTime.now))).
+      setRangeEnd(ComplexKey.of(
+        java.lang.Boolean.TRUE,java.lang.Boolean.FALSE,timeOfDay(DateTime.now.plusMinutes(30)))).setStale(Stale.FALSE)
+    runningJobBucket.find[RunningJob]("runningJob", "by_end_time_and_recurring_alert_sent")(query)
+  }
+
+
+
 
   def findRunningJobToReset() : Future[Seq[RunningJob]] = {
     val query = new Query().setIncludeDocs(true)
