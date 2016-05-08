@@ -193,6 +193,7 @@ trait BobbitRepository {
     }
   }
 
+
   def findAllRunningJob(): Future[List[RunningJob]] = {
     runningJobBucket.find[RunningJob]("runningJob", "by_jobId")(new Query().setIncludeDocs(true).setStale(Stale.FALSE))
   }
