@@ -1,0 +1,24 @@
+{
+  "name": "Central",
+  "id": "central",
+  "lineStatuses": [
+    {
+      "statusSeverity": 9,
+      "statusSeverityDescription": "Minor Delays",
+      "reason": "Central Line: Minor delays due to an earlier faulty train at Stratford. ",
+      "validityPeriods": [
+        {
+          "fromDate": 1460658203000,
+          "toDate": 1460680140000
+        }
+      ],
+      "disruption": {
+        "category": "Undefined",
+        "description": "Central Line: Minor delays due to an earlier faulty train at Stratford. ",
+        "closureText": "minorDelays",
+        "isWholeLine": true
+      }
+    }
+  ],
+  "lastUpdated": 1460663208741
+}

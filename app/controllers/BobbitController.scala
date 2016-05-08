@@ -71,7 +71,6 @@ class BobbitController  @Inject() (system: ActorSystem, wsClient:WSClient, conf:
   lazy val alertJobScheduleJob = system.scheduler.schedule(
     0.microseconds, 10000.milliseconds, alertJobActor,  Run("run"))
 
-
   def fetchTubeLine() = Action.async { implicit request =>
 
 //      tubeScheduleJob
