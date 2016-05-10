@@ -52,6 +52,37 @@ class BobbitRepositorySpec extends Testing {
 
     }
 
+
+    "return running job to execute with end time" in new WithApplication {
+
+      await(repo.deleteAllRunningJob())
+      await(repo.deleteAllJobs())
+
+      val now = DateTime.now.minusMinutes(10)
+      val hourOfTheDay = now.hourOfDay().get()
+      val minOfTheDay = now.minuteOfHour().get()
+      val startJob = TimeOfDay(hourOfTheDay, minOfTheDay, Some(TimeOfDay.time(hourOfTheDay, minOfTheDay)))
+
+      val job = RunningJob(from = startJob, to = startJob.plusMinutes(40), alertSent = false,
+        recurring = true, jobId = UUID.randomUUID().toString)
+      await(repo.saveRunningJob(job))
+
+      await(repo.saveRunningJob(RunningJob(from = startJob, to = startJob.plusMinutes(40), alertSent = false,
+        recurring = true, jobId = UUID.randomUUID().toString)))
+
+      val job1 = RunningJob(from = startJob, to = startJob.plusMinutes(50), alertSent = true,
+        recurring = true, jobId = UUID.randomUUID().toString)
+      await(repo.saveRunningJob(job1))
+
+
+      val res = await(repo.findRunningJobToExecute())
+      res.size should be(2)
+
+      res contains job should be(true)
+
+    }
+
+
     "return running jobs to reset" in new WithApplication {
 
       await(repo.deleteAllRunningJob(), 10 second)
