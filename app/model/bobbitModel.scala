@@ -149,10 +149,26 @@ object JobForBobbit {
 }
 
 
-case class Account(private val id: Option[String] = Some(UUID.randomUUID().toString),userName: String, firstName: String, lastName:String,email:EmailAddress ,docType: String = "Account")
+case class Account(private val id: Option[String] = Some(UUID.randomUUID().toString),
+                   userName: String,
+                   firstName: Option[String],
+                   lastName:Option[String],
+                   email:EmailAddress ,
+                   docType: String = "Account",
+                   active:Boolean = false)
   extends InternalId {
   def getId = this.id.getOrElse(throw new IllegalStateException("found an Account without an ID!!!"))
 }
 object Account {
   implicit val format = Json.format[Account]
+}
+
+
+case class Token(private val id: Option[String] = Some(UUID.randomUUID().toString),
+                 token : String, accountId: String ,
+                 docType: String = "Token")extends InternalId {
+  def getId = this.id.getOrElse(throw new IllegalStateException("found an Token without an ID!!!"))
+}
+object Token {
+  implicit val format = Json.format[Token]
 }

@@ -53,7 +53,7 @@ trait JobService extends TubeService with TubeConnector  {
   }
 
   def deleteAlerts(alerts: Seq[EmailAlert]) = {
-    Future.sequence(alerts map (al => repo.deleteAlertById(al.getId)))
+    Future.sequence(alerts map (al => repo.deleteById(al.getId)))
   }
 
   def findAndResetActiveJobs() = {

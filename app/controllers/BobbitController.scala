@@ -8,12 +8,13 @@ import akka.actor.ActorSystem
 import jobs._
 import model.{Job}
 import org.reactivecouchbase.client.OpResult
+import play.api.http.HeaderNames
 import play.api.{Configuration, Environment}
 import play.api.libs.json._
 import play.api.libs.ws.WSClient
-import play.api.mvc.{Request, Result, Action, Controller}
+import play.api.mvc._
 import repository.{TubeRepository, BobbitRepository}
-import service.{MailGunService, JobService}
+import service.{BearerTokenGenerator, MailGunService, JobService}
 import service.tfl.{TubeConnector, TubeService}
 import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -102,7 +103,7 @@ class BobbitController @Inject()(system: ActorSystem, wsClient: WSClient, conf: 
 
   def delete(id: String) = Action.async {
     implicit request =>
-      repository.deleteJobById(id) map {
+      repository.deleteById(id) map {
         case Left(id) => Ok
         case _ => InternalServerError
       }
@@ -110,7 +111,7 @@ class BobbitController @Inject()(system: ActorSystem, wsClient: WSClient, conf: 
 
   def deleteRunningJob(id: String) = Action.async {
     implicit request =>
-      repository.deleteRunningJoById(id) map {
+      repository.deleteById(id) map {
         case Left(id) => Ok
         case _ => InternalServerError
       }
@@ -130,7 +131,7 @@ class BobbitController @Inject()(system: ActorSystem, wsClient: WSClient, conf: 
     }
   }
 
-  def findAccount(id:String) = IsAuthenticated {
+  def findAccount(id: String) = IsAuthenticated {
     implicit request =>
       repository.findAccountById(id) map {
         case b: Some[Account] => Ok(Json.toJson[Account](b.get))
@@ -151,14 +152,35 @@ class BobbitController @Inject()(system: ActorSystem, wsClient: WSClient, conf: 
     }
   }
 
+  def checkUserName(userName: String) = Action.async {
+    repository.findAccountByUserName(userName) map {
+      case head :: tail => Ok
+      case Nil => NotFound
+    }
+  }
+
+  def validateAccount(token: String) = Action.async {
+     val res = for {
+       tk <- repository.findAccountByToken(token)
+       result <- repository.activateAccount(tk,token)
+     } yield result
+
+     res map {
+       case Left(id) => Ok
+       case Right(message) => BadRequest(Json.obj("message"->JsString(""))) //TODO
+     }
+  }
+
+  //TODO send email to confirm account
   def account() = Action.async(parse.json) { implicit request =>
-    val accountId = UUID.randomUUID().toString
+    val accId = UUID.randomUUID().toString
     withJsonBody[Account]{ account =>
-    val accountToSave = account.copy(id = Some(accountId))
-      repository.saveAccount(accountToSave) map {
-       case Left(id) => Created.withHeaders("Location" -> ("/api/bobbit/account/" + id))
-       case _ => InternalServerError
-      }
+    val accountToSave = account.copy(id = Some(accId))
+      for {
+       account <- repository.saveAccount(accountToSave)
+       token = BearerTokenGenerator.generateSHAToken("account-token")
+       _ <- repository.saveToken(Token(token = token,accountId = accId))
+      } yield Created.withHeaders(LOCATION -> ("/api/bobbit/account/" + accId),HeaderNames.AUTHORIZATION -> token )
     }
   }
 

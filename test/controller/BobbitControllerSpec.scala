@@ -94,7 +94,7 @@ class BobbitControllerSpec extends Specification {
 
     "return 201 and create account record" in new WithApplication() {
 
-      val account = Account(userName = "neo13",firstName = "Rocco",lastName = "Bruno", email = EmailAddress("test@test.it"))
+      val account = Account(userName = "neo13",firstName = Some("Rocco"),lastName = Some("Bruno"), email = EmailAddress("test@test.it"))
       val response = route(implicitApp,FakeRequest(POST, "/api/bobbit/account").withBody(Json.toJson(account)))
       status(response.get) must equalTo(CREATED)
 
@@ -109,6 +109,35 @@ class BobbitControllerSpec extends Specification {
       json.firstName must equalTo(account.firstName)
       json.lastName must equalTo(account.lastName)
       json.email must equalTo(account.email)
+    }
+
+    "create and validate account" in new WithApplication() {
+
+      val account = Account(userName = "neo13",firstName = Some("Rocco"),lastName = Some("Bruno"), email = EmailAddress("test@test.it"))
+      val response = route(implicitApp,FakeRequest(POST, "/api/bobbit/account").withBody(Json.toJson(account)))
+      status(response.get) must equalTo(CREATED)
+
+      val getResource = headers(response.get).get("Location").get
+      getResource must be startWith("/api/bobbit/account")
+
+      val getRec = route(implicitApp,FakeRequest(GET, getResource)).get
+      status(getRec) must equalTo(OK)
+      val json: Account = contentAsJson(getRec).as[Account]
+
+      json.active must equalTo(false)
+
+      val token = headers(response.get).get(AUTHORIZATION).get
+      val valRespo = route(implicitApp,FakeRequest(POST, s"/api/bobbit/account/validate/$token").withBody(Json.toJson("")))
+      status(valRespo.get) must equalTo(OK)
+
+
+      val getRecUpdated = route(implicitApp,FakeRequest(GET, getResource)).get
+      status(getRecUpdated) must equalTo(OK)
+      val jsonUpdated: Account = contentAsJson(getRecUpdated).as[Account]
+
+      jsonUpdated.active must equalTo(true)
+
+
     }
 
 
