@@ -1,7 +1,7 @@
 package controllers
 
 import play.api.libs.json.{JsSuccess, Reads, JsValue}
-import play.api.mvc.{Results, Request, Result}
+import play.api.mvc.{AnyContent, Results, Request, Result}
 
 import scala.concurrent.Future
 

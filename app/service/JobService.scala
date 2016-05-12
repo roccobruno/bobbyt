@@ -82,7 +82,7 @@ trait JobService extends TubeService with TubeConnector  {
     }
 
     val alert: Future[Option[EmailAlert]] = for {
-      job <- repo.findById(jobToProcess.jobId)
+      job <- repo.findJobById(jobToProcess.jobId)
       tubeLines <- findTubeByIds(job.get.journey.meansOfTransportation.tubeLines map (_.id))
       alert <- processLine(tubeLines.flatten, job.get)
 

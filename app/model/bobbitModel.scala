@@ -109,7 +109,8 @@ case class Job(title:String,
                journey: Journey,
                private val id: Option[String] = Some(UUID.randomUUID().toString),
                active: Boolean = true,
-               onlyOn: Option[DateTime] = None) extends InternalId {
+               onlyOn: Option[DateTime] = None,
+               docType: String = "Job") extends InternalId {
   def getId = this.id.get
 
 }
@@ -121,7 +122,7 @@ object Job {
 
 case class RunningJob(private val id: String = UUID.randomUUID().toString,
                       from: TimeOfDay, to: TimeOfDay, alertSent: Boolean = false,
-                      recurring: Boolean = true, jobId: String)
+                      recurring: Boolean = true, jobId: String,  docType: String = "RunningJob")
   extends InternalId {
   def getId = this.id
 }
@@ -133,7 +134,7 @@ object RunningJob {
   implicit val format = Json.format[RunningJob]
 }
 
-case class EmailAlert(private val id: String = UUID.randomUUID().toString,email: Email, persisted: Option[DateTime], sent: Option[DateTime], jobId: String) extends InternalId {
+case class EmailAlert(private val id: String = UUID.randomUUID().toString,email: Email, persisted: Option[DateTime], sent: Option[DateTime], jobId: String,docType: String = "Alert") extends InternalId {
   def getId = this.id
 }
 
@@ -145,4 +146,13 @@ object EmailAlert {
 
 object JobForBobbit {
   implicit val format = Json.format[JobForBobbit]
+}
+
+
+case class Account(private val id: Option[String] = Some(UUID.randomUUID().toString),userName: String, firstName: String, lastName:String,email:EmailAddress ,docType: String = "Account")
+  extends InternalId {
+  def getId = this.id.getOrElse(throw new IllegalStateException("found an Account without an ID!!!"))
+}
+object Account {
+  implicit val format = Json.format[Account]
 }

@@ -26,8 +26,8 @@ class BobbitRepositorySpec extends Testing {
 
     "return running job to execute" in new WithApplication {
 
-      await(repo.deleteAllRunningJob())
-      await(repo.deleteAllJobs())
+      await(repo.deleteAllRunningJob(), 10 second)
+      await(repo.deleteAllJobs(), 10 second)
 
       val now = DateTime.now.plusMinutes(2)
       val hourOfTheDay = now.hourOfDay().get()
@@ -45,7 +45,7 @@ class BobbitRepositorySpec extends Testing {
       await(repo.saveRunningJob(job1))
 
 
-      val res = await(repo.findRunningJobToExecute())
+      val res = await(repo.findRunningJobToExecute(), 10 second)
       res.size should be(2)
 
       res contains job should be(true)
@@ -55,8 +55,8 @@ class BobbitRepositorySpec extends Testing {
 
     "return running job to execute with end time" in new WithApplication {
 
-      await(repo.deleteAllRunningJob())
-      await(repo.deleteAllJobs())
+      await(repo.deleteAllRunningJob(), 10 second)
+      await(repo.deleteAllJobs(), 10 second)
 
       val now = DateTime.now.minusMinutes(10)
       val hourOfTheDay = now.hourOfDay().get()
@@ -75,7 +75,7 @@ class BobbitRepositorySpec extends Testing {
       await(repo.saveRunningJob(job1))
 
 
-      val res = await(repo.findRunningJobToExecute())
+      val res = await(repo.findRunningJobToExecute(), 10 second)
       res.size should be(2)
 
       res contains job should be(true)
@@ -102,7 +102,7 @@ class BobbitRepositorySpec extends Testing {
       await(repo.saveRunningJob(job2))
 
 
-      val res = await(repo.findRunningJobToReset())
+      val res = await(repo.findRunningJobToReset(), 10 second)
       res.size should be(1)
       res contains job should be(true)
 

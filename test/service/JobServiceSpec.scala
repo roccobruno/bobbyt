@@ -60,7 +60,7 @@ class JobServiceSpec extends  Testing {
 
       when(repoMock.findRunningJobToExecute()).thenReturn(Future.successful(Set(runningJob)))
       when(tubeMock.findById("central")).thenReturn(Future.successful(Some(tubeService)))
-      when(repoMock.findById(job.getId)).thenReturn(Future.successful(Some(job)))
+      when(repoMock.findJobById(job.getId)).thenReturn(Future.successful(Some(job)))
       when(repoMock.saveAlert(any[EmailAlert])).thenReturn(Future.successful(Left("id")))
       when(repoMock.saveRunningJob(any[RunningJob])).thenReturn(Future.successful(Left("id")))
 
@@ -84,7 +84,7 @@ class JobServiceSpec extends  Testing {
 
       when(repoMock.findRunningJobToExecute()).thenReturn(Future.successful(Set(runningJob)))
       when(tubeMock.findById("central")).thenReturn(Future.successful(Some(tubeService)))
-      when(repoMock.findById(job.getId)).thenReturn(Future.successful(Some(job)))
+      when(repoMock.findJobById(job.getId)).thenReturn(Future.successful(Some(job)))
       when(repoMock.saveAlert(any[EmailAlert])).thenReturn(Future.successful(Left("id")))
       when(repoMock.saveRunningJob(any[RunningJob])).thenReturn(Future.successful(Left("id")))
 
@@ -108,7 +108,7 @@ class JobServiceSpec extends  Testing {
       when(repoMock.findRunningJobToExecute()).thenReturn(Future.successful(Set(runningJob)))
       when(tubeMock.findById("central")).thenReturn(Future.successful(Some(tubeService)))
       when(tubeMock.findById("northern")).thenReturn(Future.successful(Some(tubeService2)))
-      when(repoMock.findById(job.getId)).thenReturn(Future.successful(Some(job)))
+      when(repoMock.findJobById(job.getId)).thenReturn(Future.successful(Some(job)))
       when(repoMock.saveAlert(any[EmailAlert])).thenReturn(Future.successful(Left("id")))
       when(repoMock.saveRunningJob(any[RunningJob])).thenReturn(Future.successful(Left("id")))
 
@@ -135,7 +135,7 @@ class JobServiceSpec extends  Testing {
       when(repoMock.findRunningJobToExecute()).thenReturn(Future.successful(Set(runningJob,runningJob2)))
       when(tubeMock.findById("central")).thenReturn(Future.successful(Some(tubeService)))
       when(tubeMock.findById("northern")).thenReturn(Future.successful(Some(tubeService2)))
-      when(repoMock.findById(job.getId)).thenReturn(Future.successful(Some(job)))
+      when(repoMock.findJobById(job.getId)).thenReturn(Future.successful(Some(job)))
       when(repoMock.saveAlert(any[EmailAlert])).thenReturn(Future.successful(Left("id")))
       when(repoMock.saveRunningJob(any[RunningJob])).thenReturn(Future.successful(Left("id")))
 
@@ -162,7 +162,7 @@ class JobServiceSpec extends  Testing {
 
       when(repoMock.findRunningJobToExecute()).thenReturn(Future.successful(Set(runningJob)))
       when(tubeMock.findById("central")).thenReturn(Future.successful(Some(tubeService)))
-      when(repoMock.findById(job.getId)).thenReturn(Future.successful(Some(job)))
+      when(repoMock.findJobById(job.getId)).thenReturn(Future.successful(Some(job)))
       when(repoMock.saveAlert(any[EmailAlert])).thenReturn(Future.successful(Left("id")))
       when(repoMock.saveRunningJob(any[RunningJob])).thenReturn(Future.successful(Left("id")))
 

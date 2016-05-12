@@ -10,10 +10,13 @@ GET     /assets/*file               controllers.Assets.versioned(path="/public",
 
 
 #bobbit Api
-GET   /api/bobbit/fetch                     controllers.BobbitController.fetchTubeLine
+GET    /api/bobbit/fetch                    controllers.BobbitController.fetchTubeLine
 GET    /api/bobbit/:id                      controllers.BobbitController.find(id:String)
 POST   /api/bobbit                          controllers.BobbitController.save
 DELETE /api/bobbit/:id                      controllers.BobbitController.delete(id:String)
+
+POST   /api/bobbit/account                  controllers.BobbitController.account
+GET    /api/bobbit/account/:id                  controllers.BobbitController.findAccount(id:String)
 
 #Running job
 GET      /api/bobbit/running-job/job-id/:id    controllers.BobbitController.findRunningJobByJobId(id:String)
