@@ -15,10 +15,13 @@ GET    /api/bobbit/:id                      controllers.BobbitController.find(id
 POST   /api/bobbit                          controllers.BobbitController.save
 DELETE /api/bobbit/:id                      controllers.BobbitController.delete(id:String)
 
-POST   /api/bobbit/account                      controllers.BobbitController.account
-GET    /api/bobbit/account/:id                  controllers.BobbitController.findAccount(id:String)
-GET    /api/bobbit/account/username/:username   controllers.BobbitController.checkUserName(username: String)
+#Account
+POST    /api/bobbit/account                      controllers.BobbitController.account
+GET     /api/bobbit/account/:id                  controllers.BobbitController.findAccount(id:String)
+GET     /api/bobbit/account/username/:username   controllers.BobbitController.checkUserName(username: String)
 POST    /api/bobbit/account/validate/:token      controllers.BobbitController.validateAccount(token: String)
+POST    /api/bobbit/login                        controllers.BobbitController.login
+POST    /api/bobbit/token/validate/:token        controllers.BobbitController.validateToken(token: String)
 
 #Running job
 GET      /api/bobbit/running-job/job-id/:id    controllers.BobbitController.findRunningJobByJobId(id:String)

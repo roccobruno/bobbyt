@@ -160,15 +160,23 @@ class BobbitController @Inject()(system: ActorSystem, wsClient: WSClient, conf: 
   }
 
   def validateAccount(token: String) = Action.async {
-     val res = for {
-       tk <- repository.findAccountByToken(token)
-       result <- repository.activateAccount(tk,token)
-     } yield result
+    val res = for {
+      tk <- repository.findAccountByToken(token)
+      result <- repository.activateAccount(tk, token)
 
-     res map {
-       case Left(id) => Ok
-       case Right(message) => BadRequest(Json.obj("message"->JsString(""))) //TODO
-     }
+    } yield result
+
+    res map {
+      case Left(id) => Ok
+      case Right(message) => BadRequest(Json.obj("message" -> JsString(""))) //TODO
+    }
+  }
+
+  def validateToken(token: String) = Action.async {
+    repository.findValidTokenByValue(token) map {
+      case Seq(token) => Ok
+      case Nil => BadRequest
+    }
   }
 
   //TODO send email to confirm account
@@ -182,6 +190,25 @@ class BobbitController @Inject()(system: ActorSystem, wsClient: WSClient, conf: 
        _ <- repository.saveToken(Token(token = token,accountId = accId))
       } yield Created.withHeaders(LOCATION -> ("/api/bobbit/account/" + accId),HeaderNames.AUTHORIZATION -> token )
     }
+  }
+
+  def login() = Action.async(parse.json) { implicit request =>
+    withJsonBody[Login]{ login =>
+
+       repository.findAccountByUserName(login.username) flatMap  {
+            case Seq(account) if account.password == login.password => {
+                       val token  = BearerTokenGenerator.generateSHAToken("account-token")
+                       repository.saveToken(Token(token = token,accountId = account.getId)) map  {
+                           case Left(id) => Ok.withCookies(Cookie("token",token))
+                           case Right(_) => println(s"Error saving token for account ${account.getId} in login");InternalServerError
+                       }
+                 }
+            case Seq(account) => Future.successful(Unauthorized)
+            case Nil => Future.successful(NotFound)
+       }
+
+    }
+
   }
 
 

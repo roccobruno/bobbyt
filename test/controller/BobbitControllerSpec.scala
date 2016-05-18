@@ -8,14 +8,17 @@ import org.junit.runner.RunWith
 import org.specs2.matcher.MatchResult
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
+import play.api.Configuration
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.{Json, JsLookupResult, JsValue}
+import play.api.mvc.Cookies
 import play.api.test.{WithApplication, FakeRequest}
 import play.api.test.Helpers._
 
 @RunWith(classOf[JUnitRunner])
 class BobbitControllerSpec extends Specification {
 
+  lazy  val appEnableSec = GuiceApplicationBuilder().loadConfig(Configuration("security-enabled" -> true)).build()
 
 
   "bobbit controller" should {
@@ -94,7 +97,7 @@ class BobbitControllerSpec extends Specification {
 
     "return 201 and create account record" in new WithApplication() {
 
-      val account = Account(userName = "neo13",firstName = Some("Rocco"),lastName = Some("Bruno"), email = EmailAddress("test@test.it"))
+      val account = Account(userName = "neo13",firstName = Some("Rocco"),lastName = Some("Bruno"), email = EmailAddress("test@test.it"),password ="passw")
       val response = route(implicitApp,FakeRequest(POST, "/api/bobbit/account").withBody(Json.toJson(account)))
       status(response.get) must equalTo(CREATED)
 
@@ -113,7 +116,9 @@ class BobbitControllerSpec extends Specification {
 
     "create and validate account" in new WithApplication() {
 
-      val account = Account(userName = "neo13",firstName = Some("Rocco"),lastName = Some("Bruno"), email = EmailAddress("test@test.it"))
+      val username: String = "neo13"
+      val passw: String = "passw"
+      val account = Account(userName = username,firstName = Some("Rocco"),lastName = Some("Bruno"), email = EmailAddress("test@test.it"), password =passw)
       val response = route(implicitApp,FakeRequest(POST, "/api/bobbit/account").withBody(Json.toJson(account)))
       status(response.get) must equalTo(CREATED)
 
@@ -136,7 +141,18 @@ class BobbitControllerSpec extends Specification {
       val jsonUpdated: Account = contentAsJson(getRecUpdated).as[Account]
 
       jsonUpdated.active must equalTo(true)
+      
+      //login
+      val loginRespo = route(implicitApp,FakeRequest(POST, s"/api/bobbit/login").withBody(Json.toJson(Login(username = username,password = passw)))).get
+      status(loginRespo) must equalTo(OK)
 
+      val cookiesReturned: Cookies = cookies(loginRespo)
+      val tokenAuth = cookiesReturned.find( c => c.name =="token").get.value
+      println(s"token = $tokenAuth")
+
+
+      val tokenValidate = route(implicitApp,FakeRequest(POST, s"/api/bobbit/token/validate/$tokenAuth").withBody(Json.toJson(""))).get
+      status(tokenValidate) must equalTo(OK)
 
     }
 

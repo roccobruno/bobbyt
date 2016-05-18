@@ -1,20 +1,23 @@
 package repository
 
 import java.util.UUID
+import java.util.concurrent.TimeUnit
 import javafx.scene.control.Alert
 
 import com.couchbase.client.protocol.views._
 import model.{Job}
 import org.joda.time.DateTime
+import org.reactivecouchbase.CouchbaseExpiration.{CouchbaseExpirationTiming, CouchbaseExpirationTiming_byDuration, CouchbaseExpirationTiming_byInt}
 import org.reactivecouchbase.{ReactiveCouchbaseDriver, CouchbaseBucket}
 import org.reactivecouchbase.play.PlayCouchbase
 import play.api.libs.json._
-import org.reactivecouchbase.client.OpResult
+import org.reactivecouchbase.client.{Constants, OpResult}
 import play.api.Play.current
 import scala.concurrent.ExecutionContext.Implicits.global
 import org.reactivecouchbase.play.plugins.CouchbaseN1QLPlugin._
 
 import scala.concurrent.Future
+import scala.concurrent.duration.Duration
 import scala.util.{Try, Failure}
 
 import model._
@@ -36,6 +39,7 @@ object BobbitRepository extends BobbitRepository {
       desDoc.getViews.add(new ViewDesign("by_type", viewByDoctypeMapFunction))
       desDoc.getViews.add(new ViewDesign("by_type_username", viewByTypeAndUsernameMapFunction))
       desDoc.getViews.add(new ViewDesign("by_type_token", viewByTypeAndTokenMapFunction))
+      desDoc.getViews.add(new ViewDesign("by_type_token_time", viewByTypeAndTokenAndTimeMapFunction))
       desDoc.getViews.add(new ViewDesign("by_type_time_and_recurring_alert_sent", viewByStartTimeMapFunction))
       desDoc.getViews.add(new ViewDesign("by_type_end_time_and_recurring_alert_sent", viewByEndTimeMapFunction))
       bobbitBucket.createDesignDoc(desDoc) map {
@@ -98,12 +102,20 @@ object BobbitRepository extends BobbitRepository {
       |}
     """.stripMargin
 
+  val viewByTypeAndTokenAndTimeMapFunction =
+    """
+      |function (doc, meta) {
+      |  emit([doc.docType,doc.token, doc.lastTimeUpdate], null);
+      |}
+    """.stripMargin
+
 
   createBobbitDesignerDocument()
 }
 
 
 trait BobbitRepository {
+  implicit val expirationTiming = Constants.expiration
 
 
   def driver: ReactiveCouchbaseDriver
@@ -120,6 +132,10 @@ trait BobbitRepository {
 
   def deleteAllAccount() = {
     deleteAll(findAllAccount)
+  }
+
+  def deleteAllToken() = {
+    deleteAll(findAllToken)
   }
 
   def deleteAllAlerts() = {
@@ -141,6 +157,7 @@ trait BobbitRepository {
       for {
         acc <- findById[Account](token.accountId)
         result <- saveAccount(acc, token.accountId)
+        _ <- deleteById(token.getId)
       } yield result
     }
 
@@ -157,9 +174,9 @@ trait BobbitRepository {
     }
   }
 
-  def save[T <: InternalId](entity: T)(implicit writes: Writes[T]): Future[Either[String, Any]] = {
+  def save[T <: InternalId](entity: T)(implicit expirationTime: CouchbaseExpirationTiming,writes: Writes[T]): Future[Either[String, Any]] = {
     val id = entity.getId
-    bobbitBucket.set[T](id,entity) map {
+    bobbitBucket.set[T](id,entity, exp = expirationTime) map {
       case o: OpResult if o.isSuccess => Left(id)
       case o: OpResult => Right(o.getMessage)
     }
@@ -171,7 +188,11 @@ trait BobbitRepository {
 
   def saveRunningJob(job: RunningJob): Future[Either[String, Any]] = save[RunningJob](job)
 
-  def saveToken(token: Token): Future[Either[String, Any]] = save[Token](token)
+  def saveToken(token: Token): Future[Either[String, Any]] = {
+    implicit val expirationTiming = CouchbaseExpirationTiming_byDuration(Duration.create(30, TimeUnit.MINUTES))
+
+    save[Token](token)
+  }
 
   def saveAccount(account: Account): Future[Either[String, Any]] = save[Account](account)
 
@@ -183,6 +204,14 @@ trait BobbitRepository {
   def findAccountById(id: String): Future[Option[Account]] = findById[Account](id)
 
   def findById[T](id: String)(implicit rds: Reads[T]): Future[Option[T]] = bobbitBucket.get[T](id)
+
+  def findValidTokenByValue(token: String) :Future[List[Token]] = {
+    val now = DateTime.now()
+    bobbitBucket.find[Token]("bobbit", "by_type_token_time")(new Query().setIncludeDocs(true).setLimit(1)
+      .setRangeStart(ComplexKey.of("Token",token, now.minusMinutes(30))).
+      setRangeEnd(ComplexKey.of("Token",s"$token\uefff", now)).
+      setStale(Stale.FALSE))
+  }
 
   def findAccountByUserName(userName: String): Future[List[Account]] = {
     bobbitBucket.find[Account]("bobbit", "by_type_username")(new Query().setIncludeDocs(true).setLimit(1)
@@ -226,6 +255,10 @@ trait BobbitRepository {
 
   def findAllAccount(): Future[List[Account]] = {
     findAllByType[Account]("Account")
+  }
+
+  def findAllToken(): Future[List[Token]] = {
+    findAllByType[Token]("Token")
   }
 
   def findAllJob(): Future[List[Job]] = {

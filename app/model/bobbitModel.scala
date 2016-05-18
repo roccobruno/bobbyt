@@ -155,6 +155,7 @@ case class Account(private val id: Option[String] = Some(UUID.randomUUID().toStr
                    lastName:Option[String],
                    email:EmailAddress ,
                    docType: String = "Account",
+                   password: String,
                    active:Boolean = false)
   extends InternalId {
   def getId = this.id.getOrElse(throw new IllegalStateException("found an Account without an ID!!!"))
@@ -166,9 +167,19 @@ object Account {
 
 case class Token(private val id: Option[String] = Some(UUID.randomUUID().toString),
                  token : String, accountId: String ,
-                 docType: String = "Token")extends InternalId {
+                 docType: String = "Token",
+                 lastTimeUpdate: DateTime = DateTime.now())extends InternalId {
   def getId = this.id.getOrElse(throw new IllegalStateException("found an Token without an ID!!!"))
 }
 object Token {
   implicit val format = Json.format[Token]
+}
+
+case class Login(private val id: Option[String] = Some(UUID.randomUUID().toString),
+                 username : String, password: String ,
+                 docType: String = "Login")extends InternalId {
+  def getId = this.id.getOrElse(throw new IllegalStateException("found an Login without an ID!!!"))
+}
+object Login {
+  implicit val format = Json.format[Login]
 }

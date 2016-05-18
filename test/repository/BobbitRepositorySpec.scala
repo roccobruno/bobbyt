@@ -2,7 +2,7 @@ package repository
 
 import java.util.UUID
 
-import model.{TimeOfDay, RunningJob}
+import model.{Token, TimeOfDay, RunningJob}
 import org.joda.time.DateTime
 import org.joda.time.DateTime.now
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpecLike}
@@ -106,6 +106,17 @@ class BobbitRepositorySpec extends Testing {
       res.size should be(1)
       res contains job should be(true)
 
+    }
+
+    "return valid token" in new WithApplication {
+
+      await(repo.deleteAllToken(), 10 second)
+      private val token = Token(token = "token", accountId = "accountId")
+      await(repo.saveToken(token))
+
+      val res = await(repo.findValidTokenByValue("token"), 10 second)
+      res.size should be(1)
+      res contains token should be(true)
     }
 
 
