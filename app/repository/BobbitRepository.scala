@@ -39,7 +39,6 @@ object BobbitRepository extends BobbitRepository {
       desDoc.getViews.add(new ViewDesign("by_type", viewByDoctypeMapFunction))
       desDoc.getViews.add(new ViewDesign("by_type_username", viewByTypeAndUsernameMapFunction))
       desDoc.getViews.add(new ViewDesign("by_type_token", viewByTypeAndTokenMapFunction))
-      desDoc.getViews.add(new ViewDesign("by_type_token_time", viewByTypeAndTokenAndTimeMapFunction))
       desDoc.getViews.add(new ViewDesign("by_type_time_and_recurring_alert_sent", viewByStartTimeMapFunction))
       desDoc.getViews.add(new ViewDesign("by_type_end_time_and_recurring_alert_sent", viewByEndTimeMapFunction))
       bobbitBucket.createDesignDoc(desDoc) map {
@@ -102,12 +101,6 @@ object BobbitRepository extends BobbitRepository {
       |}
     """.stripMargin
 
-  val viewByTypeAndTokenAndTimeMapFunction =
-    """
-      |function (doc, meta) {
-      |  emit([doc.docType,doc.token, doc.lastTimeUpdate], null);
-      |}
-    """.stripMargin
 
 
   createBobbitDesignerDocument()
@@ -115,7 +108,6 @@ object BobbitRepository extends BobbitRepository {
 
 
 trait BobbitRepository {
-  implicit val expirationTiming = Constants.expiration
 
 
   def driver: ReactiveCouchbaseDriver
@@ -152,49 +144,43 @@ trait BobbitRepository {
     }
   }
 
-  def activateAccount(token: Option[Token],tokenValue: String): Future[Either[String, Any]] = {
-    def updateAccount(token: Token) = {
+  def activateAccount(token: Token,tokenValue: String): Future[Option[String]] = {
       for {
         acc <- findById[Account](token.accountId)
-        result <- saveAccount(acc, token.accountId)
-        _ <- deleteById(token.getId)
+        resultSaving <- saveAccount(acc, token.accountId)
+        result <- deleteById(token.getId)
       } yield result
-    }
 
-    token match {
-      case None => Future.successful(Right(s"no token found for id=$tokenValue"))
-      case Some(token) => updateAccount(token)
-    }
   }
 
-  def saveAccount(account: Option[Account], accountId: String): Future[Either[String, Any]] = {
+  def saveAccount(account: Option[Account], accountId: String): Future[Option[String]] = {
     account match {
-      case None => Future.successful(Right(s"no account found for id=$accountId"))
+      case None => Future.successful(Some(s"no account found for id=$accountId"))
       case Some(acc) => saveAccount(acc.copy(active = true))
     }
   }
 
-  def save[T <: InternalId](entity: T)(implicit expirationTime: CouchbaseExpirationTiming,writes: Writes[T]): Future[Either[String, Any]] = {
+  def save[T <: InternalId](entity: T)(implicit expirationTime: CouchbaseExpirationTiming = Constants.expiration,writes: Writes[T]): 
+  Future[Option[String]] = {
     val id = entity.getId
     bobbitBucket.set[T](id,entity, exp = expirationTime) map {
-      case o: OpResult if o.isSuccess => Left(id)
-      case o: OpResult => Right(o.getMessage)
+      case o: OpResult if o.isSuccess => Some(id)
+      case o: OpResult => println(s"error in saving entity: $entity - opResult:${o.getMessage}"); None
     }
   }
 
-  def saveAlert(alert: EmailAlert): Future[Either[String, Any]] = save[EmailAlert](alert)
+  def saveAlert(alert: EmailAlert): Future[Option[String]] = save[EmailAlert](alert)
 
-  def saveJob(job: Job): Future[Either[String, Any]] = save[Job](job)
+  def saveJob(job: Job): Future[Option[String]] = save[Job](job)
 
-  def saveRunningJob(job: RunningJob): Future[Either[String, Any]] = save[RunningJob](job)
+  def saveRunningJob(job: RunningJob): Future[Option[String]] = save[RunningJob](job)
 
-  def saveToken(token: Token): Future[Either[String, Any]] = {
+  def saveToken(token: Token): Future[Option[String]] = {
     implicit val expirationTiming = CouchbaseExpirationTiming_byDuration(Duration.create(30, TimeUnit.MINUTES))
-
     save[Token](token)
   }
 
-  def saveAccount(account: Account): Future[Either[String, Any]] = save[Account](account)
+  def saveAccount(account: Account): Future[Option[String]] = save[Account](account)
 
 
   def findRunningJobById(id: String): Future[Option[RunningJob]] = findById[RunningJob](id)
@@ -205,12 +191,15 @@ trait BobbitRepository {
 
   def findById[T](id: String)(implicit rds: Reads[T]): Future[Option[T]] = bobbitBucket.get[T](id)
 
-  def findValidTokenByValue(token: String) :Future[List[Token]] = {
-    val now = DateTime.now()
-    bobbitBucket.find[Token]("bobbit", "by_type_token_time")(new Query().setIncludeDocs(true).setLimit(1)
-      .setRangeStart(ComplexKey.of("Token",token, now.minusMinutes(30))).
-      setRangeEnd(ComplexKey.of("Token",s"$token\uefff", now)).
-      setStale(Stale.FALSE))
+  def findValidTokenByValue(token: String) :Future[Option[Token]] = {
+    bobbitBucket.find[Token]("bobbit", "by_type_token")(new Query().setIncludeDocs(true).setLimit(1)
+      .setRangeStart(ComplexKey.of("Token",token)).
+      setRangeEnd(ComplexKey.of("Token",s"$token\uefff")).
+      setStale(Stale.FALSE)) map {
+      case Seq(token) => Some(token)
+      case _ => None
+    }
+
   }
 
   def findAccountByUserName(userName: String): Future[List[Account]] = {
@@ -230,10 +219,10 @@ trait BobbitRepository {
     }
   }
 
-  def deleteById(id: String): Future[Either[String, Any]] = {
+  def deleteById(id: String): Future[Option[String]] = {
     bobbitBucket.delete(id) map {
-      case o: OpResult if o.isSuccess => Left(id)
-      case o: OpResult => Right(o.getMessage)
+      case o: OpResult if o.isSuccess => Some(id)
+      case o: OpResult => println(s"error in deleting object with id: $id, opResult:${o.getMessage}"); None
     }
   }
 

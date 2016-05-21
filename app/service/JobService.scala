@@ -16,15 +16,15 @@ trait JobService extends TubeService with TubeConnector  {
   val ALERT_NOT_SENT = false
 
 
-  private def process(jobs: Seq[RunningJob], func: (RunningJob) => Future[Either[String, Any]]) = {
+  private def process(jobs: Seq[RunningJob], func: (RunningJob) => Future[Option[String]]) = {
     Future.sequence(jobs map (func)) map { rs =>
         rs.collect {
-          case Left(id) => jobs.find(j => j.getId == id)
+          case Some(id) => jobs.find(j => j.getId == id)
         }.flatten
     }
   }
 
-  private def saveUpdateRunningJob(update: Boolean)(job: RunningJob): Future[Either[String, Any]] = {
+  private def saveUpdateRunningJob(update: Boolean)(job: RunningJob): Future[Option[String]] = {
     repo.saveRunningJob(job.copy(alertSent = update))
   }
 
@@ -63,8 +63,8 @@ trait JobService extends TubeService with TubeConnector  {
     } yield updated
   }
 
-  def processJob(jobToProcess: RunningJob): Future[Either[String, Any]] = {
 
+  def processJob(jobToProcess: RunningJob): Future[Option[String]] = {
     def processLine(lines: Seq[TFLTubeService], job: Job): Future[Option[EmailAlert]] = {
 
       val allDisr: Seq[Seq[Disruption]] = lines.map { line =>
@@ -90,10 +90,10 @@ trait JobService extends TubeService with TubeConnector  {
 
     alert flatMap {
       case Some(al) => repo.saveAlert(al) map {
-        case Left(_) => Left(jobToProcess.getId)
-        case _ => Right("")
+        case Some(_) => Some(jobToProcess.getId)
+        case _ => None
       }
-      case None => Future.successful(Right(""))
+      case None => Future.successful(None)
     }
   }
 }
