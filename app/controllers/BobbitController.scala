@@ -184,7 +184,7 @@ class BobbitController @Inject()(system: ActorSystem, wsClient: WSClient, conf: 
   }
 
   //TODO send email to confirm account
-  def account() = IsAuthenticatedWithJson { implicit request =>
+  def account() = Action.async(parse.json) { implicit request =>
     val accId = UUID.randomUUID().toString
     withJsonBody[Account]{ account =>
     val accountToSave = account.copy(id = Some(accId))
@@ -200,10 +200,10 @@ class BobbitController @Inject()(system: ActorSystem, wsClient: WSClient, conf: 
     withJsonBody[Login]{ login =>
 
        repository.findAccountByUserName(login.username) flatMap  {
-            case Seq(account) if account.password == login.password => {
+            case Seq(account) if (account.active && account.password == login.password) => {
                        val token  = BearerTokenGenerator.generateSHAToken("account-token")
                        repository.saveToken(Token(token = token,accountId = account.getId)) map  {
-                           case Some(id) => Ok.withCookies(Cookie("token",token))
+                           case Some(id) => Ok.withCookies(Cookie("token",token,httpOnly = false))
                            case _ => println(s"Error saving token for account ${account.getId} in login");InternalServerError
                        }
                  }
@@ -213,6 +213,15 @@ class BobbitController @Inject()(system: ActorSystem, wsClient: WSClient, conf: 
 
     }
 
+  }
+
+  def logout() = Action.async { implicit request =>
+    request.headers.get(HeaderNames.AUTHORIZATION) match {
+      case Some(token) => TokenService.deleteToken(token) map {
+        case _ => Ok.withCookies(Cookie("token","",httpOnly = false))
+      }
+      case _ => Future.successful(Ok.withCookies(Cookie("token","",httpOnly = false)))
+    }
   }
 
 

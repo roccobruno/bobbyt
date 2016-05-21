@@ -151,8 +151,8 @@ object JobForBobbit {
 
 case class Account(private val id: Option[String] = Some(UUID.randomUUID().toString),
                    userName: String,
-                   firstName: Option[String],
-                   lastName:Option[String],
+                   firstName: Option[String] = None,
+                   lastName:Option[String] = None,
                    email:EmailAddress ,
                    docType: String = "Account",
                    password: String,

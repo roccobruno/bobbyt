@@ -137,9 +137,10 @@ class BobbitControllerSpec extends Specification  {
 
     "return 201 and create account record" in new Setup() {
 
-      val account = Account(userName = "neo13",firstName = Some("Rocco"),lastName = Some("Bruno"), email = EmailAddress("test@test.it"),password ="passw")
-      val response = route(implicitApp,FakeRequest(POST, "/api/bobbit/account").withBody(Json.toJson(account)).withHeaders((HeaderNames.AUTHORIZATION,
-        tokenForSecurity.token)))
+      val account = Account(userName = "neo13",email = EmailAddress("test@test.it"), password ="passw")
+      private val toJson = Json.toJson(account)
+
+      val response = route(implicitApp,FakeRequest(POST, "/api/bobbit/account").withBody(Json.parse("""{"userName":"neo13","email":{"value":"test@test.it"},"password":"passw","active":false, "docType":"Account"}""")))
       status(response.get) must equalTo(CREATED)
 
       val getResource = headers(response.get).get("Location").get
@@ -180,7 +181,7 @@ class BobbitControllerSpec extends Specification  {
       json.active must equalTo(false)
 
       val token = headers(response.get).get(AUTHORIZATION).get
-      val valRespo = route(implicitApp,FakeRequest(POST, s"/api/bobbit/account/validate/$token").withBody(Json.toJson("")).withHeaders((HeaderNames.AUTHORIZATION,
+      val valRespo = route(implicitApp,FakeRequest(GET, s"/api/bobbit/account/validate/$token")).withHeaders((HeaderNames.AUTHORIZATION,
         tokenForSecurity.token)))
       status(valRespo.get) must equalTo(OK)
 
@@ -191,7 +192,7 @@ class BobbitControllerSpec extends Specification  {
       val jsonUpdated: Account = contentAsJson(getRecUpdated).as[Account]
 
       jsonUpdated.active must equalTo(true)
-      
+
       //login
       val loginRespo = route(implicitApp,FakeRequest(POST, s"/api/bobbit/login").withBody(Json.toJson(Login(username = username,password = passw))).withHeaders((HeaderNames.AUTHORIZATION,
         tokenForSecurity.token))).get
@@ -200,7 +201,7 @@ class BobbitControllerSpec extends Specification  {
       val cookiesReturned: Cookies = cookies(loginRespo)
       val tokenAuth = cookiesReturned.find( c => c.name =="token").get.value
 
-      val tokenValidate = route(implicitApp,FakeRequest(POST, s"/api/bobbit/token/validate/$tokenAuth").withBody(Json.toJson("")).withHeaders((HeaderNames.AUTHORIZATION,
+      val tokenValidate = route(implicitApp,FakeRequest(GET, s"/api/bobbit/token/validate/$tokenAuth")).withHeaders((HeaderNames.AUTHORIZATION,
         tokenForSecurity.token))).get
       status(tokenValidate) must equalTo(OK)
 
@@ -209,7 +210,17 @@ class BobbitControllerSpec extends Specification  {
     }
 
 
+    "logout a valid account" in new Setup {
 
+      val response = route(implicitApp,FakeRequest(POST, "/api/bobbit/logout").withBody("").withHeaders((HeaderNames.AUTHORIZATION,
+        tokenForSecurity.token))).get
+      status(response) must equalTo(OK)
+
+      val runningJobResp = route(implicitApp,FakeRequest(GET,s"/api/bobbit/running-job/job-id/test")
+        .withHeaders((HeaderNames.AUTHORIZATION,tokenForSecurity.token))).get
+      status(runningJobResp) must equalTo(FORBIDDEN)
+
+    }
 
 
 

@@ -19,6 +19,14 @@ trait TokenService {
     } yield token).future
   }
 
+  def deleteToken(token : String): Future[Option[Token]] = {
+
+    (for {
+      token <- FutureO(bobbitRepository.findValidTokenByValue(token))
+      delete <- FutureO(bobbitRepository.deleteById(token.getId))
+    }yield token).future
+
+  }
 
 
 }
