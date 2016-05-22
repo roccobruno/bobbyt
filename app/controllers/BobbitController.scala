@@ -95,6 +95,20 @@ class BobbitController @Inject()(system: ActorSystem, wsClient: WSClient, conf: 
     }
   }
 
+  def findAllJobByToken() = IsAuthenticated { implicit authContext =>
+     repository.findAllJobByAccountId(authContext.token.accountId) map {
+       case list:Seq[Job] => Ok(Json.toJson(list))
+     }
+  }
+
+  def findAccountByToken() = IsAuthenticated { implicit authContext =>
+    println(s"findAccountByToken $authContext")
+    repository.findAccountById(authContext.token.accountId) map {
+      case Some(account) =>  println("findAccountByToken2"); Ok(Json.toJson(account))
+      case _ => NotFound
+    }
+  }
+
   def deleteAll() = Action.async {
     implicit request =>
 
@@ -136,8 +150,7 @@ class BobbitController @Inject()(system: ActorSystem, wsClient: WSClient, conf: 
     }
   }
 
-  def findAccount(id: String) = IsAuthenticated {
-    implicit request =>
+  def findAccount(id: String) = IsAuthenticated { implicit authContext =>
       repository.findAccountById(id) map {
         case b: Some[Account] => Ok(Json.toJson[Account](b.get))
         case _ => NotFound
@@ -166,12 +179,12 @@ class BobbitController @Inject()(system: ActorSystem, wsClient: WSClient, conf: 
 
   def validateAccount(token: String) = Action.async {
     val res = (for {
-      tk <- FutureO(repository.findAccountByToken(token))
+      tk <- FutureO(repository.findTokenBy(token))
       result <- FutureO(repository.activateAccount(tk, token))
     } yield result).future
 
     res map {
-      case Some(id) => Ok
+      case Some(id) => Redirect("/accountactive")
       case None => BadRequest(Json.obj("message" -> JsString(""))) //TODO
     }
   }

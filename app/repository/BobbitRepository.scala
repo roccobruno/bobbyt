@@ -35,10 +35,27 @@ object BobbitRepository extends BobbitRepository {
     case _ => {
       val desDoc = new DesignDocument("bobbit")
       desDoc.getViews.add(new ViewDesign("by_Id", viewByIdMapFunction))
-      desDoc.getViews.add(new ViewDesign("by_type_jobId", viewMapFunctionByTypeAndJobId))
       desDoc.getViews.add(new ViewDesign("by_type", viewByDoctypeMapFunction))
+      desDoc.getViews.add(new ViewDesign("by_type_accountId", viewByDoctypeAndAccountIdMapFunction))
       desDoc.getViews.add(new ViewDesign("by_type_username", viewByTypeAndUsernameMapFunction))
       desDoc.getViews.add(new ViewDesign("by_type_token", viewByTypeAndTokenMapFunction))
+      bobbitBucket.createDesignDoc(desDoc) map {
+        {
+          case o: OpResult if o.isSuccess => println("designer doc CREATED for RunningJob table")
+          case o: OpResult => Right(o.getMessage)
+        }
+      }
+
+    }
+  }
+
+  def createRunningJobDesignerDocument() = bobbitBucket.designDocument("runningJob") map {
+
+    case res: DesignDocument => println("designer document present")
+    case _ => {
+      val desDoc = new DesignDocument("runningJob")
+      desDoc.getViews.add(new ViewDesign("by_Id", viewByIdMapFunction))
+      desDoc.getViews.add(new ViewDesign("by_type_jobId", viewMapFunctionByTypeAndJobId))
       desDoc.getViews.add(new ViewDesign("by_type_time_and_recurring_alert_sent", viewByStartTimeMapFunction))
       desDoc.getViews.add(new ViewDesign("by_type_end_time_and_recurring_alert_sent", viewByEndTimeMapFunction))
       bobbitBucket.createDesignDoc(desDoc) map {
@@ -55,7 +72,9 @@ object BobbitRepository extends BobbitRepository {
   val viewMapFunctionByTypeAndJobId =
     """
       |function (doc, meta) {
-      |  emit([doc.docType,doc.jobId], null);
+      |  if(doc.jobId) {
+      |    emit([doc.docType,doc.jobId], null);
+      |  }
       |}
     """.stripMargin
 
@@ -87,23 +106,37 @@ object BobbitRepository extends BobbitRepository {
       |}
     """.stripMargin
 
+  val viewByDoctypeAndAccountIdMapFunction =
+    """
+      |function (doc, meta) {
+      |  if(doc.accountId) {
+      |  emit([doc.docType, doc.accountId], null);
+      |  }
+      |}
+    """.stripMargin
+
   val viewByTypeAndUsernameMapFunction =
     """
       |function (doc, meta) {
+      | if(doc.userName) {
       |  emit([doc.docType,doc.userName], null);
+      |  }
       |}
     """.stripMargin
 
   val viewByTypeAndTokenMapFunction =
     """
       |function (doc, meta) {
+      | if(doc.token) {
       |  emit([doc.docType,doc.token], null);
+      |  }
       |}
     """.stripMargin
 
 
 
   createBobbitDesignerDocument()
+  createRunningJobDesignerDocument()
 }
 
 
@@ -209,7 +242,7 @@ trait BobbitRepository {
       setStale(Stale.FALSE))
   }
 
-  def findAccountByToken(token: String): Future[Option[Token]] = {
+  def findTokenBy(token: String): Future[Option[Token]] = {
     bobbitBucket.find[Token]("bobbit", "by_type_token")(new Query().setIncludeDocs(true).setLimit(1)
       .setRangeStart(ComplexKey.of("Token",token)).
       setRangeEnd(ComplexKey.of("Token",s"$token\uefff")).
@@ -254,11 +287,17 @@ trait BobbitRepository {
     findAllByType[Job]("Job")
   }
 
+  def findAllJobByAccountId(accountId: String): Future[List[Job]] = {
+    val query = new Query().setIncludeDocs(true)
+      .setRangeStart(ComplexKey.of("Job", accountId)).setRangeEnd(ComplexKey.of("Job", s"$accountId\uefff")).setStale(Stale.FALSE)
+    bobbitBucket.find[Job]("bobbit", "by_type_accountId")(query)
+  }
+
 
   def findRunningJobByJobId(jobId: String): Future[Option[RunningJob]] = {
     val query = new Query().setIncludeDocs(true).setLimit(1)
       .setRangeStart(ComplexKey.of("RunningJob", jobId)).setRangeEnd(ComplexKey.of("RunningJob", s"$jobId\uefff")).setStale(Stale.FALSE)
-    bobbitBucket.find[RunningJob]("bobbit", "by_type_jobId")(query).map(_.headOption)
+    bobbitBucket.find[RunningJob]("runningJob", "by_type_jobId")(query).map(_.headOption)
   }
 
 
@@ -274,7 +313,7 @@ trait BobbitRepository {
       .setRangeStart(ComplexKey.of("RunningJob", java.lang.Boolean.TRUE, java.lang.Boolean.FALSE, timeOfDay(DateTime.now))).
       setRangeEnd(ComplexKey.of("RunningJob",
         java.lang.Boolean.TRUE, java.lang.Boolean.FALSE, timeOfDay(DateTime.now.plusMinutes(30)))).setStale(Stale.FALSE)
-    bobbitBucket.find[RunningJob]("bobbit", "by_type_time_and_recurring_alert_sent")(query)
+    bobbitBucket.find[RunningJob]("runningJob", "by_type_time_and_recurring_alert_sent")(query)
   }
 
   def findRunningJobToExecuteByEndTime(): Future[Seq[RunningJob]] = {
@@ -282,7 +321,7 @@ trait BobbitRepository {
       .setRangeStart(ComplexKey.of("RunningJob", java.lang.Boolean.TRUE, java.lang.Boolean.FALSE, timeOfDay(DateTime.now))).
       setRangeEnd(ComplexKey.of("RunningJob",
         java.lang.Boolean.TRUE, java.lang.Boolean.FALSE, timeOfDay(DateTime.now.plusMinutes(30)))).setStale(Stale.FALSE)
-    bobbitBucket.find[RunningJob]("bobbit", "by_type_end_time_and_recurring_alert_sent")(query)
+    bobbitBucket.find[RunningJob]("runningJob", "by_type_end_time_and_recurring_alert_sent")(query)
   }
 
 
@@ -290,7 +329,7 @@ trait BobbitRepository {
     val query = new Query().setIncludeDocs(true)
       .setRangeStart(ComplexKey.of("RunningJob", java.lang.Boolean.TRUE, java.lang.Boolean.TRUE, new Integer("0"))).
       setRangeEnd(ComplexKey.of("RunningJob", java.lang.Boolean.TRUE, java.lang.Boolean.TRUE, timeOfDay(DateTime.now.minusHours(1)))).setStale(Stale.FALSE)
-    bobbitBucket.find[RunningJob]("bobbit", "by_type_time_and_recurring_alert_sent")(query)
+    bobbitBucket.find[RunningJob]("runningJob", "by_type_time_and_recurring_alert_sent")(query)
   }
 
   private def timeOfDay(tm: DateTime): Integer = TimeOfDay.time(tm.hourOfDay().get(), tm.minuteOfHour().get())

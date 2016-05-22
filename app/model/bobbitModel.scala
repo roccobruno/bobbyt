@@ -110,7 +110,8 @@ case class Job(title:String,
                private val id: Option[String] = Some(UUID.randomUUID().toString),
                active: Boolean = true,
                onlyOn: Option[DateTime] = None,
-               docType: String = "Job") extends InternalId {
+               docType: String = "Job",
+               accountId: String) extends InternalId {
   def getId = this.id.get
 
 }
