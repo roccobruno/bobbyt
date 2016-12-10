@@ -18,7 +18,7 @@ class Application @Inject() (system: ActorSystem)  extends Controller {
 
   def index = Action {
     helloActor ! Run("Rocco")
-    Ok(views.html.index("Your new application is ready."))
+    Ok("")
   }
 
 //  // get a driver instance driver

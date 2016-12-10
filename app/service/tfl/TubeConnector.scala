@@ -26,6 +26,8 @@ trait TubeConnector  {
         errs => throw new IllegalArgumentException(s"Error in parsing TUBE service response error:$errs"),
         valid => valid
       )
+  } recover {
+    case ex: Throwable => println(s"ERRROROROORROORORO ${ex.getMessage}"); Seq()
   }
 
 }

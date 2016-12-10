@@ -41,7 +41,7 @@ class BobbitControllerSpec extends Specification  {
         del <-bobbitRepos.deleteAllJobs()
         del <-bobbitRepos.deleteAllRunningJob()
         tok <- saveToken
-      } yield del, 5 seconds)
+      } yield del, 10 seconds)
 
     }
 
@@ -57,7 +57,7 @@ class BobbitControllerSpec extends Specification  {
     "return 201 when posting a bobbit record" in new Setup {
 
       cleanUpDBAndCreateToken
-      
+
       private val id = UUID.randomUUID().toString
       private val job = Job("jobTitle",alert = Email("name",EmailAddress("from@mss.it"),"name",EmailAddress("from@mss.it")),
         journey= Journey(true,MeansOfTransportation(Seq(TubeLine("central","central")),Nil),TimeOfDay(8,30),40),accountId = "accountId")
@@ -85,12 +85,13 @@ class BobbitControllerSpec extends Specification  {
       val jobs: Seq[Job] = contentAsJson(allJob).as[Seq[Job]]
       jobs.size must equalTo(1)
 
-      
+
 
     }
 
     "return 201 and create a running job with a job creation XXX" in new Setup  {
       cleanUpDBAndCreateToken
+
       private val id = UUID.randomUUID().toString
 
       private val now = DateTime.now.plusMinutes(2)
@@ -98,7 +99,7 @@ class BobbitControllerSpec extends Specification  {
       private val minOfTheDay = now.minuteOfHour().get()
       private val jobStartsAtTime = TimeOfDay(hourOfTheDay, minOfTheDay, Some(TimeOfDay.time(hourOfTheDay, minOfTheDay)))
       private val job = Job("jobTile",alert = Email("name",EmailAddress("from@mss.it"),"name",EmailAddress("from@mss.it")),journey=
-        Journey(true,MeansOfTransportation(Seq(TubeLine("northern","northern")),Nil),jobStartsAtTime,40),accountId = "accountId")
+        Journey(recurring = true,MeansOfTransportation(Seq(TubeLine("piccadilly","piccadilly")),Nil),jobStartsAtTime,40),accountId = "accountId")
       val response = route(implicitApp,FakeRequest(POST, "/api/bobbit").withBody(Json.toJson(job)).withHeaders((HeaderNames.AUTHORIZATION,
         tokenForSecurity.token)))
       status(response.get) must equalTo(CREATED)
@@ -118,7 +119,7 @@ class BobbitControllerSpec extends Specification  {
       status(runningJobResp) must equalTo(OK)
       val runningJobJson: RunningJob = contentAsJson(runningJobResp).as[RunningJob]
 
-      runningJobJson.from must equalTo(jobStartsAtTime)
+      runningJobJson.fromTime must equalTo(jobStartsAtTime)
 
 
       status(route(implicitApp,FakeRequest(GET,s"/api/bobbit/running-job/job-id/${runningJobJson.jobId}").withHeaders((HeaderNames.AUTHORIZATION,
@@ -126,7 +127,7 @@ class BobbitControllerSpec extends Specification  {
 
       val activeRunningJobResp = route(implicitApp,FakeRequest(GET,s"/api/bobbit/running-job/active").withHeaders((HeaderNames.AUTHORIZATION,
         tokenForSecurity.token))).get
-      status(runningJobResp) must equalTo(OK)
+      status(activeRunningJobResp) must equalTo(OK)
       contentAsJson(activeRunningJobResp).as[Seq[RunningJob]].size must equalTo(1)
 
 
@@ -135,10 +136,10 @@ class BobbitControllerSpec extends Specification  {
 
     "return 201 and create account record" in new Setup() {
       cleanUpDBAndCreateToken
-      val account = Account(userName = "neo13",email = EmailAddress("test@test.it"), password ="passw")
+      val account = Account(userName = "neo13",email = EmailAddress("test@test.it"), psw ="passw")
       private val toJson = Json.toJson(account)
 
-      val response = route(implicitApp,FakeRequest(POST, "/api/bobbit/account").withBody(Json.parse("""{"userName":"neo13","email":{"value":"test@test.it"},"password":"passw","active":false, "docType":"Account"}""")))
+      val response = route(implicitApp,FakeRequest(POST, "/api/bobbit/account").withBody(Json.parse("""{"userName":"neo13","email":{"value":"test@test.it"},"psw":"passw","active":false, "docType":"Account"}""")))
       status(response.get) must equalTo(CREATED)
 
       val getResource = headers(response.get).get("Location").get
@@ -162,7 +163,7 @@ class BobbitControllerSpec extends Specification  {
 
       val username: String = "neo13"
       val passw: String = "passw"
-      val account = Account(userName = username,firstName = Some("Rocco"),lastName = Some("Bruno"), email = EmailAddress("test@test.it"), password =passw)
+      val account = Account(userName = username,firstName = Some("Rocco"),lastName = Some("Bruno"), email = EmailAddress("test@test.it"), psw =passw)
       val response = route(implicitApp,FakeRequest(POST, "/api/bobbit/account").withBody(Json.toJson(account)))
       status(response.get) must equalTo(CREATED)
 

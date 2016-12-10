@@ -16,11 +16,16 @@ class BobbitRepositorySpec extends Testing {
 
   def repo: BobbitRepository = BobbitRepository
 
-  override protected def afterAll(): Unit = {
-    println("shutting down the driver")
-    repo.driver.shutdown()
+
+  override protected def beforeAll(): Unit = {
+    await(repo.bucket.dropAllIndexes())
+    await(repo.bucket.createPrimaryIndex(deferBuild = false), 10 seconds)
   }
 
+  override protected def afterAll(): Unit = {
+    println("shutting down the driver")
+    repo.cluster.disconnect()
+  }
 
   "a repository" should {
 
@@ -34,13 +39,13 @@ class BobbitRepositorySpec extends Testing {
       val minOfTheDay = now.minuteOfHour().get()
       val startJob = TimeOfDay(hourOfTheDay, minOfTheDay, Some(TimeOfDay.time(hourOfTheDay, minOfTheDay)))
 
-      val job = RunningJob(from = startJob, to = startJob.plusMinutes(40), alertSent = false,
+      val job = RunningJob(fromTime = startJob, toTime = startJob.plusMinutes(40), alertSent = false,
         recurring = true, jobId = UUID.randomUUID().toString)
       await(repo.saveRunningJob(job))
-      await(repo.saveRunningJob(RunningJob(from = startJob, to = startJob.plusMinutes(40), alertSent = false,
+      await(repo.saveRunningJob(RunningJob(fromTime = startJob, toTime = startJob.plusMinutes(40), alertSent = false,
         recurring = true, jobId = UUID.randomUUID().toString)))
 
-      val job1 = RunningJob(from = startJob, to = startJob.plusMinutes(50), alertSent = true,
+      val job1 = RunningJob(fromTime = startJob, toTime = startJob.plusMinutes(50), alertSent = true,
         recurring = true, jobId = UUID.randomUUID().toString)
       await(repo.saveRunningJob(job1))
 
@@ -63,14 +68,14 @@ class BobbitRepositorySpec extends Testing {
       val minOfTheDay = now.minuteOfHour().get()
       val startJob = TimeOfDay(hourOfTheDay, minOfTheDay, Some(TimeOfDay.time(hourOfTheDay, minOfTheDay)))
 
-      val job = RunningJob(from = startJob, to = startJob.plusMinutes(40), alertSent = false,
+      val job = RunningJob(fromTime = startJob, toTime = startJob.plusMinutes(40), alertSent = false,
         recurring = true, jobId = UUID.randomUUID().toString)
       await(repo.saveRunningJob(job))
 
-      await(repo.saveRunningJob(RunningJob(from = startJob, to = startJob.plusMinutes(40), alertSent = false,
+      await(repo.saveRunningJob(RunningJob(fromTime = startJob, toTime = startJob.plusMinutes(40), alertSent = false,
         recurring = true, jobId = UUID.randomUUID().toString)))
 
-      val job1 = RunningJob(from = startJob, to = startJob.plusMinutes(50), alertSent = true,
+      val job1 = RunningJob(fromTime = startJob, toTime = startJob.plusMinutes(50), alertSent = true,
         recurring = true, jobId = UUID.randomUUID().toString)
       await(repo.saveRunningJob(job1))
 
@@ -88,23 +93,24 @@ class BobbitRepositorySpec extends Testing {
       await(repo.deleteAllRunningJob(), 10 second)
 
       val startJob = startTimeOfDay(now.minusHours(2))
-      val job = RunningJob(from = startJob, to = startJob.plusMinutes(40), alertSent = true,
-        recurring = true, jobId = UUID.randomUUID().toString)
+      val jId = UUID.randomUUID().toString
+      val job = RunningJob(fromTime = startJob, toTime = startJob.plusMinutes(40), alertSent = true,
+        recurring = true, jobId = jId)
       await(repo.saveRunningJob(job))
 
-      val job1 = RunningJob(from = startJob, to = startJob.plusMinutes(50), alertSent = false,
+      val job1 = RunningJob(fromTime = startJob, toTime = startJob.plusMinutes(50), alertSent = false,
         recurring = true, jobId = UUID.randomUUID().toString)
       await(repo.saveRunningJob(job1))
 
       val startTimeOfDay1 = startTimeOfDay(now.plusMinutes(2))
-      val job2 = RunningJob(from = startTimeOfDay1, to = startTimeOfDay1.plusMinutes(50), alertSent = true,
+      val job2 = RunningJob(fromTime = startTimeOfDay1, toTime = startTimeOfDay1.plusMinutes(50), alertSent = true,
         recurring = true, jobId = UUID.randomUUID().toString)
       await(repo.saveRunningJob(job2))
 
 
       val res = await(repo.findRunningJobToReset(), 10 second)
       res.size should be(1)
-      res contains job should be(true)
+      res contains job2 should be(true)
 
     }
 

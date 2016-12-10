@@ -9,7 +9,7 @@ import scala.concurrent.duration._
 trait Testing extends WordSpecLike with Matchers with BeforeAndAfterAll {
 
   def await[T](awaitable: Awaitable[T]) = {
-    Await.result(awaitable,2 seconds)
+    Await.result(awaitable,10 seconds)
   }
 
   def await[T](awaitable: Awaitable[T], duration : Duration) = {

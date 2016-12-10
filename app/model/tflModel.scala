@@ -14,7 +14,7 @@ object Disruption {
 }
 
 object Period {
-  implicit val dateReads = Reads.jodaDateReads("yyyy-MM-dd'T'HH:mm:ss")
+  implicit val dateReads = Reads.jodaDateReads("yyyy-MM-dd'T'HH:mm:ssZ")
   implicit val format = Json.format[Period]
 }
 

@@ -80,10 +80,10 @@ class BobbitController @Inject()(system: ActorSystem, wsClient: WSClient, conf: 
 
   def fetchTubeLine() = Action.async { implicit request =>
 
-    //      tubeScheduleJob
-    runningJobScheduleJob
-    resetRunningJobScheduleJob
-    alertJobScheduleJob
+          tubeScheduleJob
+//    runningJobScheduleJob
+//    resetRunningJobScheduleJob
+//    alertJobScheduleJob
     Future.successful(Ok(Json.obj("res" -> true)))
 
   }
@@ -179,7 +179,7 @@ class BobbitController @Inject()(system: ActorSystem, wsClient: WSClient, conf: 
 
   def validateAccount(token: String) = Action.async {
     val res = (for {
-      tk <- FutureO(repository.findTokenBy(token))
+      tk <- FutureO(repository.findValidTokenByValue(token))
       result <- FutureO(repository.activateAccount(tk, token))
     } yield result).future
 
@@ -213,7 +213,7 @@ class BobbitController @Inject()(system: ActorSystem, wsClient: WSClient, conf: 
     withJsonBody[Login]{ login =>
 
        repository.findAccountByUserName(login.username) flatMap  {
-            case Seq(account) if (account.active && account.password == login.password) => {
+            case Seq(account) if (account.active && account.psw == login.password) => {
                        val token  = BearerTokenGenerator.generateSHAToken("account-token")
                        repository.saveToken(Token(token = token,accountId = account.getId)) map  {
                            case Some(id) => Ok.withCookies(Cookie("token",token,httpOnly = false))

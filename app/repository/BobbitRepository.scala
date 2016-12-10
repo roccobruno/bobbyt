@@ -4,149 +4,77 @@ import java.util.UUID
 import java.util.concurrent.TimeUnit
 import javafx.scene.control.Alert
 
+import com.couchbase.client.java.document.json.JsonArray
+import com.couchbase.client.java.query.N1qlQuery
+import com.couchbase.client.java.{AsyncBucket, CouchbaseCluster}
 import com.couchbase.client.protocol.views._
-import model.{Job}
+import model.Job
 import org.joda.time.DateTime
 import org.reactivecouchbase.CouchbaseExpiration.{CouchbaseExpirationTiming, CouchbaseExpirationTiming_byDuration, CouchbaseExpirationTiming_byInt}
-import org.reactivecouchbase.{ReactiveCouchbaseDriver, CouchbaseBucket}
+import org.reactivecouchbase.{CouchbaseBucket, ReactiveCouchbaseDriver}
 import org.reactivecouchbase.play.PlayCouchbase
 import play.api.libs.json._
-import org.reactivecouchbase.client.{Constants, OpResult}
+import org.reactivecouchbase.client.Constants
 import play.api.Play.current
+
 import scala.concurrent.ExecutionContext.Implicits.global
 import org.reactivecouchbase.play.plugins.CouchbaseN1QLPlugin._
 
-import scala.concurrent.Future
+import scala.concurrent.{Awaitable, Future}
 import scala.concurrent.duration.Duration
-import scala.util.{Try, Failure}
-
+import scala.util.{Failure, Try}
 import model._
+import org.asyncouchbase.bucket.BucketApi
+import org.asyncouchbase.index.IndexApi
+import org.asyncouchbase.model.OpsResult
+import play.api.Logger
+import play.api.libs.iteratee.Enumerator
+import org.asyncouchbase.query.Expression._
+import org.asyncouchbase.query.SimpleQuery
+import org.asyncouchbase.util.Reflection
+
+import scala.reflect.runtime.universe._
+
 
 object BobbitRepository extends BobbitRepository {
 
 
-  val driver = ReactiveCouchbaseDriver()
-  override lazy val bobbitBucket = driver.bucket("bobbit")
 
+//  val driver = ReactiveCouchbaseDriver()
+//  val cluster = CouchbaseCluster.create("localhost")
+//  implicit override lazy val bobbitBucket = driver.bucket("bobbit")
 
-  def createBobbitDesignerDocument() = bobbitBucket.designDocument("bobbit") map {
-
-    case res: DesignDocument => println("designer document present")
-    case _ => {
-      val desDoc = new DesignDocument("bobbit")
-      desDoc.getViews.add(new ViewDesign("by_Id", viewByIdMapFunction))
-      desDoc.getViews.add(new ViewDesign("by_type", viewByDoctypeMapFunction))
-      desDoc.getViews.add(new ViewDesign("by_type_accountId", viewByDoctypeAndAccountIdMapFunction))
-      desDoc.getViews.add(new ViewDesign("by_type_username", viewByTypeAndUsernameMapFunction))
-      desDoc.getViews.add(new ViewDesign("by_type_token", viewByTypeAndTokenMapFunction))
-      bobbitBucket.createDesignDoc(desDoc) map {
-        {
-          case o: OpResult if o.isSuccess => println("designer doc CREATED for RunningJob table")
-          case o: OpResult => Right(o.getMessage)
-        }
-      }
-
-    }
-  }
-
-  def createRunningJobDesignerDocument() = bobbitBucket.designDocument("runningJob") map {
-
-    case res: DesignDocument => println("designer document present")
-    case _ => {
-      val desDoc = new DesignDocument("runningJob")
-      desDoc.getViews.add(new ViewDesign("by_Id", viewByIdMapFunction))
-      desDoc.getViews.add(new ViewDesign("by_type_jobId", viewMapFunctionByTypeAndJobId))
-      desDoc.getViews.add(new ViewDesign("by_type_time_and_recurring_alert_sent", viewByStartTimeMapFunction))
-      desDoc.getViews.add(new ViewDesign("by_type_end_time_and_recurring_alert_sent", viewByEndTimeMapFunction))
-      bobbitBucket.createDesignDoc(desDoc) map {
-        {
-          case o: OpResult if o.isSuccess => println("designer doc CREATED for RunningJob table")
-          case o: OpResult => Right(o.getMessage)
-        }
-      }
-
-    }
+  val cluster = CouchbaseCluster.create()
+  val bucket = new IndexApi {
+    override def asyncBucket: AsyncBucket = cluster.openBucket("bobbit").async()
   }
 
 
-  val viewMapFunctionByTypeAndJobId =
-    """
-      |function (doc, meta) {
-      |  if(doc.jobId) {
-      |    emit([doc.docType,doc.jobId], null);
-      |  }
-      |}
-    """.stripMargin
+  //by_type_token
+  bucket.createPrimaryIndex(deferBuild = false) map {
+    _ => Logger.info("PRIMARY INDEX CREATED")
+  } recover {
+    case ed: Throwable => Logger.error(s"PRIMARY INDEX NOT CREATED error= ${ed.getMessage}")
+  }
 
-  val viewByStartTimeMapFunction =
-    """
-      |function (doc, meta) {
-      |  emit([doc.docType,doc.recurring,doc.alertSent,doc.from.time], null);
-      |}
-    """.stripMargin
+  bucket.createIndex(Seq("token", "docType"), deferBuild = false) map {
 
-  val viewByEndTimeMapFunction =
-    """
-      |function (doc, meta) {
-      |  emit([doc.docType,doc.recurring,doc.alertSent,doc.to.time], null);
-      |}
-    """.stripMargin
-
-  val viewByIdMapFunction =
-    """
-      |function (doc, meta) {
-      |  emit(doc.id, null);
-      |}
-    """.stripMargin
-
-  val viewByDoctypeMapFunction =
-    """
-      |function (doc, meta) {
-      |  emit(doc.docType, null);
-      |}
-    """.stripMargin
-
-  val viewByDoctypeAndAccountIdMapFunction =
-    """
-      |function (doc, meta) {
-      |  if(doc.accountId) {
-      |  emit([doc.docType, doc.accountId], null);
-      |  }
-      |}
-    """.stripMargin
-
-  val viewByTypeAndUsernameMapFunction =
-    """
-      |function (doc, meta) {
-      | if(doc.userName) {
-      |  emit([doc.docType,doc.userName], null);
-      |  }
-      |}
-    """.stripMargin
-
-  val viewByTypeAndTokenMapFunction =
-    """
-      |function (doc, meta) {
-      | if(doc.token) {
-      |  emit([doc.docType,doc.token], null);
-      |  }
-      |}
-    """.stripMargin
+    _ => Logger.info("SECONDARY INDEX CREATED")
+  } recover {
+    case ed: Throwable => Logger.error(s"SECONDARY INDEX CREATED error= ${ed.getMessage}")
+  }
 
 
 
-  createBobbitDesignerDocument()
-  createRunningJobDesignerDocument()
+
 }
 
 
 trait BobbitRepository {
 
+  def cluster:CouchbaseCluster
 
-  def driver: ReactiveCouchbaseDriver
-
-  def bobbitBucket: CouchbaseBucket
-
+  def bucket: IndexApi
 
   def deleteAllRunningJob() = deleteAll(findAllRunningJob)
 
@@ -177,12 +105,12 @@ trait BobbitRepository {
     }
   }
 
-  def activateAccount(token: Token,tokenValue: String): Future[Option[String]] = {
-      for {
-        acc <- findById[Account](token.accountId)
-        resultSaving <- saveAccount(acc, token.accountId)
-        result <- deleteById(token.getId)
-      } yield result
+  def activateAccount(token: Token, tokenValue: String): Future[Option[String]] = {
+    for {
+      acc <- findById[Account](token.accountId)
+      resultSaving <- saveAccount(acc, token.accountId)
+      result <- deleteById(token.getId)
+    } yield result
 
   }
 
@@ -193,14 +121,16 @@ trait BobbitRepository {
     }
   }
 
-  def save[T <: InternalId](entity: T)(implicit expirationTime: CouchbaseExpirationTiming = Constants.expiration,writes: Writes[T]): 
+  def save[T <: InternalId](entity: T)(implicit expirationTime: CouchbaseExpirationTiming = Constants.expiration, writes: Writes[T]):
   Future[Option[String]] = {
     val id = entity.getId
-    bobbitBucket.set[T](id,entity, exp = expirationTime) map {
-      case o: OpResult if o.isSuccess => Some(id)
-      case o: OpResult => println(s"error in saving entity: $entity - opResult:${o.getMessage}"); None
+    bucket.upsert[T](id, entity) map {
+      case o: OpsResult if o.isSuccess => Some(id)
+      case o: OpsResult => println(s"error in saving entity: $entity - opResult:${o.msg}"); None
     }
   }
+
+
 
   def saveAlert(alert: EmailAlert): Future[Option[String]] = save[EmailAlert](alert)
 
@@ -222,49 +152,37 @@ trait BobbitRepository {
 
   def findAccountById(id: String): Future[Option[Account]] = findById[Account](id)
 
-  def findById[T](id: String)(implicit rds: Reads[T]): Future[Option[T]] = bobbitBucket.get[T](id)
+  def findById[T](id: String)(implicit rds: Reads[T]): Future[Option[T]] = bucket.get[T](id)
 
-  def findValidTokenByValue(token: String) :Future[Option[Token]] = {
-    bobbitBucket.find[Token]("bobbit", "by_type_token")(new Query().setIncludeDocs(true).setLimit(1)
-      .setRangeStart(ComplexKey.of("Token",token)).
-      setRangeEnd(ComplexKey.of("Token",s"$token\uefff")).
-      setStale(Stale.FALSE)) map {
-      case Seq(token) => Some(token)
-      case _ => None
+  def findValidTokenByValue(token: String): Future[Option[Token]] = {
+    val query = new SimpleQuery[Token]() SELECT "*" FROM "bobbit" WHERE ("token" === token AND "docType" === "Token")
+    bucket.find[Token](query) map {
+      case head:: tail => Some(head)
+      case Nil => None
     }
 
   }
 
   def findAccountByUserName(userName: String): Future[List[Account]] = {
-    bobbitBucket.find[Account]("bobbit", "by_type_username")(new Query().setIncludeDocs(true).setLimit(1)
-      .setRangeStart(ComplexKey.of("Account",userName)).
-      setRangeEnd(ComplexKey.of("Account",s"$userName\uefff")).
-      setStale(Stale.FALSE))
+
+    val query = new SimpleQuery[Account]() SELECT "*" FROM "bobbit" WHERE ("userName" === userName AND "docType" === "Account")
+    bucket.find[Account](query)
+
   }
 
-  def findTokenBy(token: String): Future[Option[Token]] = {
-    bobbitBucket.find[Token]("bobbit", "by_type_token")(new Query().setIncludeDocs(true).setLimit(1)
-      .setRangeStart(ComplexKey.of("Token",token)).
-      setRangeEnd(ComplexKey.of("Token",s"$token\uefff")).
-      setStale(Stale.FALSE)) map {
-      case head :: Nil => Some(head)
-      case _ => None
-    }
-  }
 
   def deleteById(id: String): Future[Option[String]] = {
-    bobbitBucket.delete(id) map {
-      case o: OpResult if o.isSuccess => Some(id)
-      case o: OpResult => println(s"error in deleting object with id: $id, opResult:${o.getMessage}"); None
+
+    bucket.delete(id) map {
+      case o: OpsResult if o.isSuccess => Some(id)
+      case o: OpsResult => println(s"error in deleting object with id: $id, opResult:${o.msg}"); None
     }
   }
 
 
-  def findAllByType[T <: InternalId](docType: String)(implicit rds: Reads[T]): Future[List[T]] = {
-    bobbitBucket.find[T]("bobbit", "by_type")(new Query().setIncludeDocs(true)
-      .setRangeStart(ComplexKey.of(docType)).
-      setRangeEnd(ComplexKey.of(s"$docType\uefff")).
-      setStale(Stale.FALSE))
+  def findAllByType[T: TypeTag](docType: String)(implicit rds: Reads[T]): Future[List[T]] = {
+    val query = new SimpleQuery[T]() SELECT "*" FROM "bobbit" WHERE ("docType" === docType)
+    bucket.find[T](query)
   }
 
   def findAllRunningJob(): Future[List[RunningJob]] = {
@@ -288,16 +206,17 @@ trait BobbitRepository {
   }
 
   def findAllJobByAccountId(accountId: String): Future[List[Job]] = {
-    val query = new Query().setIncludeDocs(true)
-      .setRangeStart(ComplexKey.of("Job", accountId)).setRangeEnd(ComplexKey.of("Job", s"$accountId\uefff")).setStale(Stale.FALSE)
-    bobbitBucket.find[Job]("bobbit", "by_type_accountId")(query)
+
+    val query = new SimpleQuery[Job]() SELECT "*" FROM "bobbit" WHERE ("docType" === "Job" AND "accountId" === accountId)
+    bucket.find[Job](query)
   }
 
-
   def findRunningJobByJobId(jobId: String): Future[Option[RunningJob]] = {
-    val query = new Query().setIncludeDocs(true).setLimit(1)
-      .setRangeStart(ComplexKey.of("RunningJob", jobId)).setRangeEnd(ComplexKey.of("RunningJob", s"$jobId\uefff")).setStale(Stale.FALSE)
-    bobbitBucket.find[RunningJob]("runningJob", "by_type_jobId")(query).map(_.headOption)
+    val query = new SimpleQuery[RunningJob]() SELECT "*" FROM "bobbit" WHERE ("docType" === "RunningJob" AND "jobId" === jobId)
+    bucket.find[RunningJob](query) map {
+      case head :: tail => Some(head)
+      case Nil => None
+    }
   }
 
 
@@ -309,29 +228,48 @@ trait BobbitRepository {
   }
 
   def findRunningJobToExecuteByStartTime(): Future[Seq[RunningJob]] = {
-    val query = new Query().setIncludeDocs(true)
-      .setRangeStart(ComplexKey.of("RunningJob", java.lang.Boolean.TRUE, java.lang.Boolean.FALSE, timeOfDay(DateTime.now))).
-      setRangeEnd(ComplexKey.of("RunningJob",
-        java.lang.Boolean.TRUE, java.lang.Boolean.FALSE, timeOfDay(DateTime.now.plusMinutes(30)))).setStale(Stale.FALSE)
-    bobbitBucket.find[RunningJob]("runningJob", "by_type_time_and_recurring_alert_sent")(query)
+
+    val now: DateTime = DateTime.now()
+    val timeFrom = timeOfDay(now)
+    val timeTO = timeOfDay(now.plusMinutes(30))
+
+    val query = new SimpleQuery[RunningJob]() SELECT "*" FROM "bobbit" WHERE
+      ("docType" === "RunningJob" AND "recurring" === true AND "alertSent" === false AND
+        ( "fromTime.time" BETWEEN (timeFrom AND  timeTO)))
+
+    bucket.find[RunningJob](query)
+
   }
 
   def findRunningJobToExecuteByEndTime(): Future[Seq[RunningJob]] = {
-    val query = new Query().setIncludeDocs(true)
-      .setRangeStart(ComplexKey.of("RunningJob", java.lang.Boolean.TRUE, java.lang.Boolean.FALSE, timeOfDay(DateTime.now))).
-      setRangeEnd(ComplexKey.of("RunningJob",
-        java.lang.Boolean.TRUE, java.lang.Boolean.FALSE, timeOfDay(DateTime.now.plusMinutes(30)))).setStale(Stale.FALSE)
-    bobbitBucket.find[RunningJob]("runningJob", "by_type_end_time_and_recurring_alert_sent")(query)
+
+    val now: DateTime = DateTime.now()
+    val timeFrom = timeOfDay(now)
+    val timeTO = timeOfDay(now.plusMinutes(30))
+
+
+    val query = new SimpleQuery[RunningJob]() SELECT "*" FROM "bobbit" WHERE
+      ("docType" === "RunningJob" AND "recurring" === true AND "alertSent" === false AND
+        ( "toTime.time" BETWEEN (timeFrom AND  timeTO)))
+
+    bucket.find[RunningJob](query)
+
   }
 
 
   def findRunningJobToReset(): Future[Seq[RunningJob]] = {
-    val query = new Query().setIncludeDocs(true)
-      .setRangeStart(ComplexKey.of("RunningJob", java.lang.Boolean.TRUE, java.lang.Boolean.TRUE, new Integer("0"))).
-      setRangeEnd(ComplexKey.of("RunningJob", java.lang.Boolean.TRUE, java.lang.Boolean.TRUE, timeOfDay(DateTime.now.minusHours(1)))).setStale(Stale.FALSE)
-    bobbitBucket.find[RunningJob]("runningJob", "by_type_time_and_recurring_alert_sent")(query)
+
+    val now: DateTime = DateTime.now()
+    val timeTO = timeOfDay(now.minusHours(1))
+
+    val query = new SimpleQuery[RunningJob]() SELECT "*" FROM "bobbit" WHERE
+      ("docType" === "RunningJob" AND "recurring" === true AND "alertSent" === true AND ("toTime.time" gt timeTO))
+
+    bucket.find[RunningJob](query)
+
+
   }
 
-  private def timeOfDay(tm: DateTime): Integer = TimeOfDay.time(tm.hourOfDay().get(), tm.minuteOfHour().get())
+  private def timeOfDay(tm: DateTime): Int = TimeOfDay.time(tm.hourOfDay().get(), tm.minuteOfHour().get())
 
 }

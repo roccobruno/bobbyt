@@ -3,8 +3,8 @@ package model
 import java.util.UUID
 
 import org.joda.time.DateTime
-import play.api.libs.json.{JsValue, Writes, Json}
-
+import play.api.libs.json.{JsValue, Json, Writes}
+import scala.reflect.runtime.universe._
 
 trait InternalId {
   def getId: String
@@ -122,15 +122,15 @@ object Job {
 
 
 case class RunningJob(private val id: String = UUID.randomUUID().toString,
-                      from: TimeOfDay, to: TimeOfDay, alertSent: Boolean = false,
-                      recurring: Boolean = true, jobId: String,  docType: String = "RunningJob")
+                      fromTime: TimeOfDay, toTime: TimeOfDay, alertSent: Boolean = false,
+                      recurring: Boolean = true, jobId: String, docType: String = "RunningJob")
   extends InternalId {
   def getId = this.id
 }
 
 object RunningJob {
 
-  def fromJob(job: Job) = RunningJob(from = job.journey.startsAt, to = job.journey.startsAt.plusMinutes(job.journey.durationInMin), jobId = job.getId, recurring = job.journey.recurring)
+  def fromJob(job: Job) = RunningJob(fromTime = job.journey.startsAt, toTime = job.journey.startsAt.plusMinutes(job.journey.durationInMin), jobId = job.getId, recurring = job.journey.recurring)
 
   implicit val format = Json.format[RunningJob]
 }
@@ -154,9 +154,9 @@ case class Account(private val id: Option[String] = Some(UUID.randomUUID().toStr
                    userName: String,
                    firstName: Option[String] = None,
                    lastName:Option[String] = None,
-                   email:EmailAddress ,
+                   email:EmailAddress,
                    docType: String = "Account",
-                   password: String,
+                   psw: String,
                    active:Boolean = false)
   extends InternalId {
   def getId = this.id.getOrElse(throw new IllegalStateException("found an Account without an ID!!!"))
@@ -169,7 +169,7 @@ object Account {
 case class Token(private val id: Option[String] = Some(UUID.randomUUID().toString),
                  token : String, accountId: String ,
                  docType: String = "Token",
-                 lastTimeUpdate: DateTime = DateTime.now())extends InternalId {
+                 lastTimeUpdate: DateTime = DateTime.now()) extends InternalId {
   def getId = this.id.getOrElse(throw new IllegalStateException("found an Token without an ID!!!"))
 }
 object Token {

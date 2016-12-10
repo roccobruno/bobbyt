@@ -1,4 +1,3 @@
-
 couchbase1:
   image: couchbase/server
   volumes:

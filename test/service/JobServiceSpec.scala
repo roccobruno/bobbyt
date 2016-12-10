@@ -56,7 +56,7 @@ class JobServiceSpec extends  Testing {
       val lineStatus = LineStatus(10, "", None, Nil, Some(Disruption("minor-delay", "", "", None, None)))
       val tubeService = TFLTubeService("central", "central", Seq(lineStatus))
 
-      val runningJob = RunningJob(from = TimeOfDay(8, 30), to = TimeOfDay(9, 10), jobId = job.getId)
+      val runningJob = RunningJob(fromTime = TimeOfDay(8, 30), toTime = TimeOfDay(9, 10), jobId = job.getId)
 
       when(repoMock.findRunningJobToExecute()).thenReturn(Future.successful(Set(runningJob)))
       when(tubeMock.findById("central")).thenReturn(Future.successful(Some(tubeService)))
@@ -80,7 +80,7 @@ class JobServiceSpec extends  Testing {
       val lineStatus = LineStatus(10, "", None, Nil, None)
       val tubeService = TFLTubeService("central", "central", Seq(lineStatus))
 
-      val runningJob = RunningJob(from = TimeOfDay(8, 30), to = TimeOfDay(9, 10), jobId = job.getId)
+      val runningJob = RunningJob(fromTime = TimeOfDay(8, 30), toTime = TimeOfDay(9, 10), jobId = job.getId)
 
       when(repoMock.findRunningJobToExecute()).thenReturn(Future.successful(Set(runningJob)))
       when(tubeMock.findById("central")).thenReturn(Future.successful(Some(tubeService)))
@@ -103,7 +103,7 @@ class JobServiceSpec extends  Testing {
       val tubeService = TFLTubeService("central", "central", Seq(lineStatus))
       val tubeService2 = TFLTubeService("northern", "northern", Seq(lineStatus))
 
-      val runningJob = RunningJob(from = TimeOfDay(8, 30), to = TimeOfDay(9, 10), jobId = job.getId)
+      val runningJob = RunningJob(fromTime = TimeOfDay(8, 30), toTime = TimeOfDay(9, 10), jobId = job.getId)
 
       when(repoMock.findRunningJobToExecute()).thenReturn(Future.successful(Set(runningJob)))
       when(tubeMock.findById("central")).thenReturn(Future.successful(Some(tubeService)))
@@ -129,8 +129,8 @@ class JobServiceSpec extends  Testing {
       val tubeService = TFLTubeService("central", "central", Seq(lineStatus))
       val tubeService2 = TFLTubeService("northern", "northern", Seq(lineStatus))
 
-      val runningJob = RunningJob(from = TimeOfDay(8, 30), to = TimeOfDay(9, 10), jobId = job.getId)
-      val runningJob2 = RunningJob(from = TimeOfDay(8, 30), to = TimeOfDay(9, 10), jobId = job.getId)
+      val runningJob = RunningJob(fromTime = TimeOfDay(8, 30), toTime = TimeOfDay(9, 10), jobId = job.getId)
+      val runningJob2 = RunningJob(fromTime = TimeOfDay(8, 30), toTime = TimeOfDay(9, 10), jobId = job.getId)
 
       when(repoMock.findRunningJobToExecute()).thenReturn(Future.successful(Set(runningJob,runningJob2)))
       when(tubeMock.findById("central")).thenReturn(Future.successful(Some(tubeService)))
@@ -158,7 +158,7 @@ class JobServiceSpec extends  Testing {
       val lineStatus = LineStatus(10, "", None, Nil, Some(Disruption("minor-delay", "", "", None, None)))
       val tubeService = TFLTubeService("central", "central", Seq(lineStatus))
 
-      val runningJob = RunningJob(from = TimeOfDay(8, 30), to = TimeOfDay(9, 10), jobId = job.getId)
+      val runningJob = RunningJob(fromTime = TimeOfDay(8, 30), toTime = TimeOfDay(9, 10), jobId = job.getId)
 
       when(repoMock.findRunningJobToExecute()).thenReturn(Future.successful(Set(runningJob)))
       when(tubeMock.findById("central")).thenReturn(Future.successful(Some(tubeService)))
