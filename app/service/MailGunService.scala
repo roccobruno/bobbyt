@@ -3,15 +3,14 @@ package service
 import java.net.ConnectException
 import java.util.concurrent.TimeoutException
 
-import model.{Converters, MailgunId, MailgunSendResponse, EmailToSent}
+import model.{Converters, EmailToSent, MailgunId, MailgunSendResponse}
 import org.apache.commons.codec.binary.Base64
 import play.api.Logger
-import play.api.http.{Writeable, HeaderNames}
-import play.api.libs.json.Json
+import play.api.http.HeaderNames
 import play.api.libs.ws.WSClient
 
-import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 trait MailGunService {
 

@@ -3,6 +3,7 @@ package service
 import model.Token
 import repository.BobbitRepository
 import util.FutureO
+
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 

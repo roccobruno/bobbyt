@@ -1,7 +1,6 @@
 package jobs
 
 import akka.actor._
-import play.api.Logger
 
 case class SayHello(name: String)
 

@@ -1,8 +1,6 @@
 package service
 
-import scala.util._
-import java.security.SecureRandom
-import java.security.MessageDigest
+import java.security.{MessageDigest, SecureRandom}
 
 /*
  * Generates a Bearer Token with a length of

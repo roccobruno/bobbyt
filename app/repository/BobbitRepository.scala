@@ -1,38 +1,22 @@
 package repository
 
-import java.util.UUID
 import java.util.concurrent.TimeUnit
-import javafx.scene.control.Alert
 
-import com.couchbase.client.java.document.json.JsonArray
-import com.couchbase.client.java.query.N1qlQuery
 import com.couchbase.client.java.{AsyncBucket, CouchbaseCluster}
-import com.couchbase.client.protocol.views._
-import model.Job
-import org.joda.time.DateTime
-import org.reactivecouchbase.CouchbaseExpiration.{CouchbaseExpirationTiming, CouchbaseExpirationTiming_byDuration, CouchbaseExpirationTiming_byInt}
-import org.reactivecouchbase.{CouchbaseBucket, ReactiveCouchbaseDriver}
-import org.reactivecouchbase.play.PlayCouchbase
-import play.api.libs.json._
-import org.reactivecouchbase.client.Constants
-import play.api.Play.current
-
-import scala.concurrent.ExecutionContext.Implicits.global
-import org.reactivecouchbase.play.plugins.CouchbaseN1QLPlugin._
-
-import scala.concurrent.{Awaitable, Future}
-import scala.concurrent.duration.Duration
-import scala.util.{Failure, Try}
-import model._
-import org.asyncouchbase.bucket.BucketApi
+import model.{Job, _}
 import org.asyncouchbase.index.IndexApi
 import org.asyncouchbase.model.OpsResult
-import play.api.Logger
-import play.api.libs.iteratee.Enumerator
 import org.asyncouchbase.query.Expression._
 import org.asyncouchbase.query.SimpleQuery
-import org.asyncouchbase.util.Reflection
+import org.joda.time.DateTime
+import org.reactivecouchbase.CouchbaseExpiration.{CouchbaseExpirationTiming, CouchbaseExpirationTiming_byDuration}
+import org.reactivecouchbase.client.Constants
+import play.api.Logger
+import play.api.libs.json._
 
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
+import scala.concurrent.duration.Duration
 import scala.reflect.runtime.universe._
 
 
@@ -44,7 +28,7 @@ object BobbitRepository extends BobbitRepository {
 //  val cluster = CouchbaseCluster.create("localhost")
 //  implicit override lazy val bobbitBucket = driver.bucket("bobbit")
 
-  val cluster = CouchbaseCluster.create()
+  val cluster = CouchbaseCluster.create("172.17.0.2")
   val bucket = new IndexApi {
     override def asyncBucket: AsyncBucket = cluster.openBucket("bobbit").async()
   }

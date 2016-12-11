@@ -2,8 +2,8 @@ package util
 
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpecLike}
 
-import scala.concurrent.{Await, Awaitable}
 import scala.concurrent.duration._
+import scala.concurrent.{Await, Awaitable}
 
 
 trait Testing extends WordSpecLike with Matchers with BeforeAndAfterAll {

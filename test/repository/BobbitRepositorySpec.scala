@@ -2,14 +2,12 @@ package repository
 
 import java.util.UUID
 
-import model.{Token, TimeOfDay, RunningJob}
+import model.{RunningJob, TimeOfDay, Token}
 import org.joda.time.DateTime
 import org.joda.time.DateTime.now
-import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpecLike}
 import play.api.test.WithApplication
 import util.Testing
 
-import scala.concurrent.Await
 import scala.concurrent.duration._
 
 class BobbitRepositorySpec extends Testing {

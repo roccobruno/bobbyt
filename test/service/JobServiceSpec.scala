@@ -1,26 +1,14 @@
 package service
 
-import java.util.UUID
-
 import _root_.util.Testing
 import model._
-import org.joda.time.DateTime
-import org.mockito.Matchers.any
-import org.mockito.{ Mockito}
+import org.mockito.Matchers.{any, eq => meq}
 import org.mockito.Mockito._
-import org.scalatest
-import org.scalatest.concurrent.ScalaFutures
-import org.scalatest.mock.MockitoSugar
-import org.scalatest.{Matchers, OptionValues, WordSpecLike}
 import play.api.Configuration
 import play.api.libs.ws.WSClient
 import repository.{BobbitRepository, TubeRepository}
-import service.JobService
-import scala.concurrent._
-import scala.concurrent.duration._
-import scala.concurrent.{Await, Promise, Future}
-import org.scalatest.Matchers._
-import org.mockito.Matchers.{eq => meq, _}
+
+import scala.concurrent.Future
 class JobServiceSpec extends  Testing {
 
   trait Setup {

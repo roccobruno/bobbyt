@@ -3,24 +3,23 @@ package controller
 import java.util.UUID
 
 import model._
-import org.joda.time.{DateTime, LocalDate}
+import org.joda.time.DateTime
 import org.junit.runner.RunWith
-import org.specs2.matcher.MatchResult
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 import play.api.Configuration
 import play.api.http.HeaderNames
 import play.api.inject.guice.GuiceApplicationBuilder
-import play.api.libs.json.{Json, JsLookupResult, JsValue}
+import play.api.libs.json.Json
 import play.api.mvc.Cookies
-import play.api.test.{WithApplication, FakeRequest}
 import play.api.test.Helpers._
+import play.api.test.{FakeRequest, WithApplication}
 import repository.BobbitRepository
 import service.BearerTokenGenerator
-import util.Testing
-import scala.concurrent.duration._
-import scala.concurrent.{Await, Future}
+
+import scala.concurrent.Await
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration._
 @RunWith(classOf[JUnitRunner])
 class BobbitControllerSpec extends Specification  {
 

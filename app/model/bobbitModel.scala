@@ -4,7 +4,6 @@ import java.util.UUID
 
 import org.joda.time.DateTime
 import play.api.libs.json.{JsValue, Json, Writes}
-import scala.reflect.runtime.universe._
 
 trait InternalId {
   def getId: String
@@ -130,7 +129,8 @@ case class RunningJob(private val id: String = UUID.randomUUID().toString,
 
 object RunningJob {
 
-  def fromJob(job: Job) = RunningJob(fromTime = job.journey.startsAt, toTime = job.journey.startsAt.plusMinutes(job.journey.durationInMin), jobId = job.getId, recurring = job.journey.recurring)
+  def fromJob(job: Job) = RunningJob(fromTime = job.journey.startsAt,
+    toTime = job.journey.startsAt.plusMinutes(job.journey.durationInMin), jobId = job.getId, recurring = job.journey.recurring)
 
   implicit val format = Json.format[RunningJob]
 }

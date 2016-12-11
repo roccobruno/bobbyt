@@ -1,9 +1,8 @@
 package jobs
 
 import akka.actor._
-import play.api.Logger
 import service.JobService
-import service.tfl.{TubeService, TubeConnector}
+
 import scala.concurrent.ExecutionContext.Implicits.global
 
 object ResetRunningJobActor {

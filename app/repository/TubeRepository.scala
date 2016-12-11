@@ -6,13 +6,9 @@ import org.asyncouchbase.bucket.BucketApi
 import org.asyncouchbase.index.IndexApi
 import org.asyncouchbase.model.OpsResult
 import org.joda.time.DateTime
-import org.reactivecouchbase.client.OpResult
-import org.reactivecouchbase.{CouchbaseBucket, ReactiveCouchbaseDriver}
-import play.api.libs.iteratee.Enumerator
+import org.reactivecouchbase.ReactiveCouchbaseDriver
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import play.api.Play.current
-
 import scala.concurrent.Future
 
 
@@ -21,7 +17,7 @@ object TubeRepository extends TubeRepository {
 
   val driver = ReactiveCouchbaseDriver()
 
-  val cluster = CouchbaseCluster.create()
+  val cluster = CouchbaseCluster.create("172.17.0.2")
   val bucket = new IndexApi {
     override def asyncBucket: AsyncBucket = cluster.openBucket("tube").async()
   }

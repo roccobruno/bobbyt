@@ -1,28 +1,24 @@
 package controllers
 
 import java.util.UUID
-import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
 import _root_.util.FutureO
 import akka.actor.ActorSystem
 import jobs._
-import model.{Job}
-import org.reactivecouchbase.client.OpResult
+import model.{Job, _}
+import play.api.Configuration
 import play.api.http.HeaderNames
-import play.api.{Configuration, Environment}
 import play.api.libs.json._
 import play.api.libs.ws.WSClient
 import play.api.mvc._
-import repository.{TubeRepository, BobbitRepository}
-import service.{TokenService, BearerTokenGenerator, MailGunService, JobService}
+import repository.{BobbitRepository, TubeRepository}
 import service.tfl.{TubeConnector, TubeService}
-import scala.concurrent.ExecutionContext.Implicits.global
+import service.{BearerTokenGenerator, JobService, MailGunService, TokenService}
 
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import scala.concurrent.duration.Duration
 import scala.concurrent.duration._
-import model._
 
 
 class BobbitController @Inject()(system: ActorSystem, wsClient: WSClient, conf: Configuration) extends Controller with JsonParser with Securing {

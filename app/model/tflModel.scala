@@ -1,7 +1,7 @@
 package model
 
 import org.joda.time.DateTime
-import play.api.libs.json.{Reads, Json}
+import play.api.libs.json.{Json, Reads}
 
 
 case class Disruption(category: String, description: String, closureText: String, isBlocking: Option[Boolean], isWholeLine: Option[Boolean])

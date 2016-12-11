@@ -1,6 +1,5 @@
 package model
 
-import org.specs2.matcher.Matchers
 import org.specs2.mutable.Specification
 
 class TimeOfDaySpec extends Specification {

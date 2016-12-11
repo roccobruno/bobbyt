@@ -4,6 +4,7 @@ import model.Token
 import play.api.http.HeaderNames
 import play.api.libs.json.JsValue
 import play.api.mvc._
+
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
