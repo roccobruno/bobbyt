@@ -2,14 +2,16 @@ package repository
 
 import java.util.concurrent.TimeUnit
 
+import com.couchbase.client.java.query.N1qlQuery
 import com.couchbase.client.java.{AsyncBucket, CouchbaseCluster}
 import model.{Job, _}
 import org.asyncouchbase.index.IndexApi
 import org.asyncouchbase.model.OpsResult
 import org.asyncouchbase.query.Expression._
-import org.asyncouchbase.query.SimpleQuery
+import org.asyncouchbase.query.{ANY, SELECT, SimpleQuery}
 import org.joda.time.DateTime
 import org.reactivecouchbase.CouchbaseExpiration.{CouchbaseExpirationTiming, CouchbaseExpirationTiming_byDuration}
+import org.reactivecouchbase.N1QLQuery
 import org.reactivecouchbase.client.Constants
 import play.api.Logger
 import play.api.libs.json._
@@ -19,16 +21,15 @@ import scala.concurrent.Future
 import scala.concurrent.duration.Duration
 import scala.reflect.runtime.universe._
 
+case class ID(id: String)
+object ID {
+  implicit val format = Json.format[ID]
+}
 
 object BobbitRepository extends BobbitRepository {
 
 
-
-//  val driver = ReactiveCouchbaseDriver()
-//  val cluster = CouchbaseCluster.create("localhost")
-//  implicit override lazy val bobbitBucket = driver.bucket("bobbit")
-
-  val cluster = CouchbaseCluster.create("172.17.0.2")
+  val cluster = ClusterConfiguration.cluster
   val bucket = new IndexApi {
     override def asyncBucket: AsyncBucket = cluster.openBucket("bobbit").async()
   }
@@ -55,6 +56,8 @@ object BobbitRepository extends BobbitRepository {
 
 
 trait BobbitRepository {
+
+  implicit val validateQuery = false
 
   def cluster:CouchbaseCluster
 
@@ -139,7 +142,7 @@ trait BobbitRepository {
   def findById[T](id: String)(implicit rds: Reads[T]): Future[Option[T]] = bucket.get[T](id)
 
   def findValidTokenByValue(token: String): Future[Option[Token]] = {
-    val query = new SimpleQuery[Token]() SELECT "*" FROM "bobbit" WHERE ("token" === token AND "docType" === "Token")
+    val query =  SELECT ("*") FROM "bobbit" WHERE ("token" === token AND "docType" === "Token")
     bucket.find[Token](query) map {
       case head:: tail => Some(head)
       case Nil => None
@@ -149,7 +152,7 @@ trait BobbitRepository {
 
   def findAccountByUserName(userName: String): Future[List[Account]] = {
 
-    val query = new SimpleQuery[Account]() SELECT "*" FROM "bobbit" WHERE ("userName" === userName AND "docType" === "Account")
+    val query =  SELECT ("*") FROM "bobbit" WHERE ("userName" === userName AND "docType" === "Account")
     bucket.find[Account](query)
 
   }
@@ -165,7 +168,7 @@ trait BobbitRepository {
 
 
   def findAllByType[T: TypeTag](docType: String)(implicit rds: Reads[T]): Future[List[T]] = {
-    val query = new SimpleQuery[T]() SELECT "*" FROM "bobbit" WHERE ("docType" === docType)
+    val query =  SELECT ("*") FROM "bobbit" WHERE ("docType" === docType)
     bucket.find[T](query)
   }
 
@@ -191,12 +194,12 @@ trait BobbitRepository {
 
   def findAllJobByAccountId(accountId: String): Future[List[Job]] = {
 
-    val query = new SimpleQuery[Job]() SELECT "*" FROM "bobbit" WHERE ("docType" === "Job" AND "accountId" === accountId)
+    val query =  SELECT ("*") FROM "bobbit" WHERE ("docType" === "Job" AND "accountId" === accountId)
     bucket.find[Job](query)
   }
 
   def findRunningJobByJobId(jobId: String): Future[Option[RunningJob]] = {
-    val query = new SimpleQuery[RunningJob]() SELECT "*" FROM "bobbit" WHERE ("docType" === "RunningJob" AND "jobId" === jobId)
+    val query =  SELECT ("*") FROM "bobbit" WHERE ("docType" === "RunningJob" AND "jobId" === jobId)
     bucket.find[RunningJob](query) map {
       case head :: tail => Some(head)
       case Nil => None
@@ -217,7 +220,7 @@ trait BobbitRepository {
     val timeFrom = timeOfDay(now)
     val timeTO = timeOfDay(now.plusMinutes(30))
 
-    val query = new SimpleQuery[RunningJob]() SELECT "*" FROM "bobbit" WHERE
+    val query =  SELECT ("*") FROM "bobbit" WHERE
       ("docType" === "RunningJob" AND "recurring" === true AND "alertSent" === false AND
         ( "fromTime.time" BETWEEN (timeFrom AND  timeTO)))
 
@@ -232,7 +235,7 @@ trait BobbitRepository {
     val timeTO = timeOfDay(now.plusMinutes(30))
 
 
-    val query = new SimpleQuery[RunningJob]() SELECT "*" FROM "bobbit" WHERE
+    val query =  SELECT ("*") FROM "bobbit" WHERE
       ("docType" === "RunningJob" AND "recurring" === true AND "alertSent" === false AND
         ( "toTime.time" BETWEEN (timeFrom AND  timeTO)))
 
@@ -246,7 +249,7 @@ trait BobbitRepository {
     val now: DateTime = DateTime.now()
     val timeTO = timeOfDay(now.minusHours(1))
 
-    val query = new SimpleQuery[RunningJob]() SELECT "*" FROM "bobbit" WHERE
+    val query =  SELECT ("*") FROM "bobbit" WHERE
       ("docType" === "RunningJob" AND "recurring" === true AND "alertSent" === true AND ("toTime.time" gt timeTO))
 
     bucket.find[RunningJob](query)
@@ -254,6 +257,24 @@ trait BobbitRepository {
 
   }
 
+
+  def findJobsByTubeLineAndRunningTime(tubeLines: Seq[TubeLine], runningTime: DateTime = DateTime.now()): Future[Seq[ID]] = {
+
+
+    val tDay = timeOfDay(runningTime) - 30
+    val fDay = timeOfDay(runningTime) +30
+
+
+    val arrayTubeLines = s"[${tubeLines.map(d => s"'${d.id}'").mkString(",")}]"
+
+    val query = SELECT("id") FROM "bobbit" WHERE (("docType" === "Job") AND ( "journey.startsAt.time" BETWEEN (tDay AND fDay))).AND( ANY("line") IN ("journey.meansOfTransportation.tubeLines") SATISFIES ("line.id" IN arrayTubeLines) END)
+
+    bucket.find[ID](query)
+
+  }
+
   private def timeOfDay(tm: DateTime): Int = TimeOfDay.time(tm.hourOfDay().get(), tm.minuteOfHour().get())
 
 }
+
+

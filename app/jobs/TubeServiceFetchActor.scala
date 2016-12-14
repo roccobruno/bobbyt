@@ -17,8 +17,6 @@ class TubeServiceFetchActor(tubeService: TubeService with TubeConnector) extends
   def receive = {
     case Run(name: String) =>
 
-      println("ACROTTOORORO TUBE")
-      Logger.info("ACROTTOORORO TUBE")
       tubeService.updateTubeServices map { res =>
         println("Running job : tube service")
         sender() ! res

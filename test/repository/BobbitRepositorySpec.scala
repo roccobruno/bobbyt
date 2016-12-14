@@ -2,9 +2,10 @@ package repository
 
 import java.util.UUID
 
-import model.{RunningJob, TimeOfDay, Token}
+import model._
 import org.joda.time.DateTime
 import org.joda.time.DateTime.now
+import play.api.libs.json.Json
 import play.api.test.WithApplication
 import util.Testing
 
@@ -13,6 +14,7 @@ import scala.concurrent.duration._
 class BobbitRepositorySpec extends Testing {
 
   def repo: BobbitRepository = BobbitRepository
+  def tubeRepo: TubeRepository = TubeRepository
 
 
   override protected def beforeAll(): Unit = {
@@ -114,13 +116,66 @@ class BobbitRepositorySpec extends Testing {
 
     "return valid token" in new WithApplication {
 
-      await(repo.deleteAllToken(), 10 second)
+      await(repo.deleteAllToken())
       private val token = Token(token = "token", accountId = "accountId")
       await(repo.saveToken(token))
 
       val res = await(repo.findValidTokenByValue("token"), 10 second)
       res.size should be(1)
       res contains token should be(true)
+    }
+
+    "return jobs affected by tube delays" in new WithApplication() {
+
+      await(repo.deleteAllJobs())
+
+      val jobJson = """{
+                  |  "accountId": "accountId",
+                  |  "journey": {
+                  |    "meansOfTransportation": {
+                  |      "trainService": [],
+                  |      "tubeLines": [
+                  |        {
+                  |          "name": "piccadilly",
+                  |          "id": "piccadilly"
+                  |        }
+                  |      ]
+                  |    },
+                  |    "durationInMin": 40,
+                  |    "startsAt": {
+                  |      "hour": 17,
+                  |      "min": 27,
+                  |      "time": 1727
+                  |    },
+                  |    "recurring": true
+                  |  },
+                  |  "alert": {
+                  |    "nameTo": "name",
+                  |    "from": {
+                  |      "value": "from@mss.it"
+                  |    },
+                  |    "nameFrom": "name",
+                  |    "to": {
+                  |      "value": "from@mss.it"
+                  |    }
+                  |  },
+                  |  "docType": "Job",
+                  |  "active": true,
+                  |  "id": "06e0fb68-adb6-4c85-a8cd-923cdd00beaf",
+                  |  "title": "jobTile"
+                  |}""".stripMargin
+
+       val job = Json.fromJson[Job](Json.parse(jobJson)).get
+
+        await(repo.save(job))
+
+
+      val result = await(repo.findJobsByTubeLineAndRunningTime(Seq(TubeLine("piccadilly","piccadilly")), DateTime.now().withHourOfDay(17).withMinuteOfHour(30)))
+
+      result.size shouldBe 1
+      result(0).id shouldBe "06e0fb68-adb6-4c85-a8cd-923cdd00beaf"
+
+
     }
 
 
