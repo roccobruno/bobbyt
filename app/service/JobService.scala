@@ -22,7 +22,8 @@ trait JobService extends TubeService with TubeConnector  {
     for {
       alerts <- repo.findAllAlert()
       emails <- sendAlert(alerts)
-      _ <- deleteAlerts(alerts)
+      _ <- updateAlert(alerts)
+      _ <- updateAlertSentDate(alerts)
     } yield alerts map (_.jobId)
   }
 
@@ -34,8 +35,12 @@ trait JobService extends TubeService with TubeConnector  {
 
   }
 
-  def deleteAlerts(alerts: Seq[EmailAlert]) = {
-    Future.sequence(alerts map (al => repo.deleteById(al.getId)))
+  def updateAlert(alerts: Seq[EmailAlert]) = {
+    Future.sequence(alerts map (al => repo.markAlertAsSent(al.getId)))
+  }
+
+  def updateAlertSentDate(alerts: Seq[EmailAlert]) = {
+    Future.sequence(alerts map (al => repo.markAlertAsSent(al.getId)))
   }
 
 
@@ -46,7 +51,7 @@ trait JobService extends TubeService with TubeConnector  {
     def createAlerts(seq: Seq[Job]): Future[Seq[Option[String]]] = {
       Future.sequence( seq map {
         job => {
-          val alertToSave = EmailAlert(email = job.alert, persisted = Some(DateTime.now()), sent = None, jobId = job.getId)
+          val alertToSave = EmailAlert(email = job.alert, persisted = DateTime.now(), sentAt = None, jobId = job.getId)
           repo.saveAlertIfAbsent(alertToSave)
         }
       })

@@ -44,10 +44,10 @@ class BobbitRepositorySpec extends Testing {
 
       val email: Email = Email("test", EmailAddress("test@test.it"), "test", EmailAddress("test@test.it"))
       val jobID: String = UUID.randomUUID().toString
-      val res = await(repo.saveAlertIfAbsent(EmailAlert(email = email, sent = None, persisted = Some(DateTime.now), jobId = jobID)))
+      val res = await(repo.saveAlertIfAbsent(EmailAlert(email = email, sentAt = None, persisted = DateTime.now, jobId = jobID, sent = true)))
       res.isDefined shouldBe true
 
-      val res2 = await(repo.saveAlertIfAbsent(EmailAlert(email = email, sent = None, persisted = Some(DateTime.now), jobId = jobID)))
+      val res2 = await(repo.saveAlertIfAbsent(EmailAlert(email = email, sentAt = None, persisted = DateTime.now, jobId = jobID)))
       res2.isDefined shouldBe false
 
     }
@@ -105,6 +105,44 @@ class BobbitRepositorySpec extends Testing {
       result.size shouldBe 1
       result(0).getId shouldBe "06e0fb68-adb6-4c85-a8cd-923cdd00beaf"
 
+
+    }
+
+    "set an alert as sent" in {
+
+      val email: Email = Email("test", EmailAddress("test@test.it"), "test", EmailAddress("test@test.it"))
+      val jobID: String = UUID.randomUUID().toString
+      val res = await(repo.saveAlert(EmailAlert(email = email, sentAt = None, persisted = DateTime.now, jobId = jobID)))
+      res.isDefined shouldBe true
+
+      val notUpdatedAlert = await(repo.findAlertByJobIdAndSentValue(jobID))
+      notUpdatedAlert.isDefined shouldBe true
+      notUpdatedAlert.get.sent shouldBe false
+
+      await(repo.markAlertAsSent(res.get))
+
+      val updateAlert = await(repo.findAlertByJobIdAndSentValue(jobID, sent = true))
+      updateAlert.isDefined shouldBe true
+      updateAlert.get.sent shouldBe true
+
+    }
+
+    "set an alert as sentAt" in {
+
+      val email: Email = Email("test", EmailAddress("test@test.it"), "test", EmailAddress("test@test.it"))
+      val jobID: String = UUID.randomUUID().toString
+      val res = await(repo.saveAlert(EmailAlert(email = email, sentAt = None, persisted = DateTime.now, jobId = jobID)))
+      res.isDefined shouldBe true
+
+      val notUpdatedAlert = await(repo.findAlertByJobIdAndSentValue(jobID))
+      notUpdatedAlert.isDefined shouldBe true
+      notUpdatedAlert.get.sentAt.isDefined shouldBe false
+
+      await(repo.markAlertAsSentAt(res.get))
+
+      val updateAlert = await(repo.findAlertByJobIdAndSentValue(jobID))
+      updateAlert.isDefined shouldBe true
+      updateAlert.get.sentAt.isDefined shouldBe true
 
     }
 

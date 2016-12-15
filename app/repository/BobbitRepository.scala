@@ -120,7 +120,7 @@ trait BobbitRepository {
 
   def saveAlertIfAbsent(alert: EmailAlert): Future[Option[String]] = {
 
-     findAlertByJobId(alert.jobId) flatMap  {
+     findAlertByJobIdAndSentValue(alert.jobId, sent = true) flatMap  {
       case Some(alert) => Future.successful(None)
       case None =>  saveAlert(alert) map {
         res => res
@@ -218,14 +218,22 @@ trait BobbitRepository {
 
   }
 
-  def findAlertByJobId(jobId: String): Future[Option[EmailAlert]] = {
+  def findAlertByJobIdAndSentValue(jobId: String, sent: Boolean = false): Future[Option[EmailAlert]] = {
 
-    val query = SELECT("*") FROM "bobbit" WHERE ("docType" === "Alert" AND "jobId" === jobId)
+    val query = SELECT("*") FROM "bobbit" WHERE ("docType" === "Alert" AND "jobId" === jobId AND "sent" === sent)
     bucket.find[EmailAlert](query) map {
       case head :: tail => Some(head)
       case Nil => None
     }
 
+  }
+
+  def markAlertAsSent(alertId: String) = {
+    bucket.setValue(alertId, "sent", true)
+  }
+
+  def markAlertAsSentAt(alertId: String) = {
+    bucket.setValue(alertId, "sentAt", DateTime.now().toDate)
   }
 
   private def timeOfDay(tm: DateTime): Int = TimeOfDay.time(tm.hourOfDay().get(), tm.minuteOfHour().get())

@@ -119,10 +119,11 @@ object Job {
 
 case class EmailAlert(private val id: String = UUID.randomUUID().toString,
                       email: Email,
-                      persisted: Option[DateTime],
-                      sent: Option[DateTime],
+                      persisted: DateTime,
+                      sentAt: Option[DateTime],
                       jobId: String,
-                      docType: String = "Alert") extends InternalId {
+                      docType: String = "Alert",
+                      sent: Boolean = false) extends InternalId {
   def getId = this.id
 }
 
