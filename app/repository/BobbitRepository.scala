@@ -120,7 +120,7 @@ trait BobbitRepository {
 
   def saveAlertIfAbsent(alert: EmailAlert): Future[Option[String]] = {
 
-     findAlertByJobIdAndSentValue(alert.jobId, sent = true) flatMap  {
+    findAlertByJobId(alert.jobId) flatMap  {
       case Some(alert) => Future.successful(None)
       case None =>  saveAlert(alert) map {
         res => res
@@ -184,6 +184,11 @@ trait BobbitRepository {
     findAllByType[EmailAlert]("Alert")
   }
 
+  def findAllAlertNotSent(): Future[List[EmailAlert]] = {
+    val query =  SELECT ("*") FROM "bobbit" WHERE ("docType" === "Alert" AND "sent" === false)
+    bucket.find[EmailAlert](query)
+  }
+
   def findAllAccount(): Future[List[Account]] = {
     findAllByType[Account]("Account")
   }
@@ -221,6 +226,16 @@ trait BobbitRepository {
   def findAlertByJobIdAndSentValue(jobId: String, sent: Boolean = false): Future[Option[EmailAlert]] = {
 
     val query = SELECT("*") FROM "bobbit" WHERE ("docType" === "Alert" AND "jobId" === jobId AND "sent" === sent)
+    bucket.find[EmailAlert](query) map {
+      case head :: tail => Some(head)
+      case Nil => None
+    }
+
+  }
+
+  def findAlertByJobId(jobId: String): Future[Option[EmailAlert]] = {
+
+    val query = SELECT("*") FROM "bobbit" WHERE ("docType" === "Alert" AND "jobId" === jobId)
     bucket.find[EmailAlert](query) map {
       case head :: tail => Some(head)
       case Nil => None

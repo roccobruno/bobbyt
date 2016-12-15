@@ -20,7 +20,7 @@ trait JobService extends TubeService with TubeConnector  {
 
   def processAlerts(): Future[Seq[String]] = {
     for {
-      alerts <- repo.findAllAlert()
+      alerts <- repo.findAllAlertNotSent()
       emails <- sendAlert(alerts)
       _ <- updateAlert(alerts)
       _ <- updateAlertSentDate(alerts)
@@ -40,7 +40,7 @@ trait JobService extends TubeService with TubeConnector  {
   }
 
   def updateAlertSentDate(alerts: Seq[EmailAlert]) = {
-    Future.sequence(alerts map (al => repo.markAlertAsSent(al.getId)))
+    Future.sequence(alerts map (al => repo.markAlertAsSentAt(al.getId)))
   }
 
 
