@@ -24,10 +24,6 @@ POST    /api/bobbit/login                        controllers.BobbitController.lo
 POST    /api/bobbit/logout                       controllers.BobbitController.logout
 GET     /api/bobbit/token/validate/:token        controllers.BobbitController.validateToken(token: String)
 
-#Running job
-GET      /api/bobbit/running-job/job-id/:id    controllers.BobbitController.findRunningJobByJobId(id:String)
-GET      /api/bobbit/running-job/active        controllers.BobbitController.findActiveRunningJob
-DELETE   /api/bobbit/running-job/id/:id        controllers.BobbitController.deleteRunningJob(id:String)
 
 
 DELETE   /api/bobbit/delete-all                controllers.BobbitController.deleteAll

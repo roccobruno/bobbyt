@@ -38,7 +38,6 @@ class BobbitControllerSpec extends Specification  {
         del <-bobbitRepos.deleteAllAccount()
         del <-bobbitRepos.deleteAllAlerts()
         del <-bobbitRepos.deleteAllJobs()
-        del <-bobbitRepos.deleteAllRunningJob()
         tok <- saveToken
       } yield del, 10 seconds)
 
@@ -88,50 +87,7 @@ class BobbitControllerSpec extends Specification  {
 
     }
 
-    "return 201 and create a running job with a job creation XXX" in new Setup  {
-      cleanUpDBAndCreateToken
 
-      private val id = UUID.randomUUID().toString
-
-      private val now = DateTime.now.plusMinutes(2)
-      private val hourOfTheDay = now.hourOfDay().get()
-      private val minOfTheDay = now.minuteOfHour().get()
-      private val jobStartsAtTime = TimeOfDay(hourOfTheDay, minOfTheDay, Some(TimeOfDay.time(hourOfTheDay, minOfTheDay)))
-      private val job = Job("jobTile",alert = Email("name",EmailAddress("from@mss.it"),"name",EmailAddress("from@mss.it")),journey=
-        Journey(recurring = true,MeansOfTransportation(Seq(TubeLine("piccadilly","piccadilly")),Nil),jobStartsAtTime,40),accountId = "accountId")
-      val response = route(implicitApp,FakeRequest(POST, "/api/bobbit").withBody(Json.toJson(job)).withHeaders((HeaderNames.AUTHORIZATION,
-        tokenForSecurity.token)))
-      status(response.get) must equalTo(CREATED)
-
-      val getResource = headers(response.get).get("Location").get
-      getResource must be startWith("/api/bobbit")
-
-      val getRec = route(implicitApp,FakeRequest(GET, getResource).withHeaders((HeaderNames.AUTHORIZATION,
-        tokenForSecurity.token))).get
-      status(getRec) must equalTo(OK)
-      val json: Job = contentAsJson(getRec).as[Job]
-      val jobId = json.getId
-
-
-      val runningJobResp = route(implicitApp,FakeRequest(GET,s"/api/bobbit/running-job/job-id/$jobId").withHeaders((HeaderNames.AUTHORIZATION,
-        tokenForSecurity.token))).get
-      status(runningJobResp) must equalTo(OK)
-      val runningJobJson: RunningJob = contentAsJson(runningJobResp).as[RunningJob]
-
-      runningJobJson.fromTime must equalTo(jobStartsAtTime)
-
-
-      status(route(implicitApp,FakeRequest(GET,s"/api/bobbit/running-job/job-id/${runningJobJson.jobId}").withHeaders((HeaderNames.AUTHORIZATION,
-        tokenForSecurity.token))).get) must equalTo(OK)
-
-      val activeRunningJobResp = route(implicitApp,FakeRequest(GET,s"/api/bobbit/running-job/active").withHeaders((HeaderNames.AUTHORIZATION,
-        tokenForSecurity.token))).get
-      status(activeRunningJobResp) must equalTo(OK)
-      contentAsJson(activeRunningJobResp).as[Seq[RunningJob]].size must equalTo(1)
-
-
-
-    }
 
     "return 201 and create account record" in new Setup() {
       cleanUpDBAndCreateToken
@@ -211,7 +167,7 @@ class BobbitControllerSpec extends Specification  {
         tokenForSecurity.token))).get
       status(response) must equalTo(OK)
 
-      val runningJobResp = route(implicitApp,FakeRequest(GET,s"/api/bobbit/running-job/job-id/test")
+      val runningJobResp = route(implicitApp,FakeRequest(GET,s"/api/bobbit/account/load")
         .withHeaders((HeaderNames.AUTHORIZATION,tokenForSecurity.token))).get
       status(runningJobResp) must equalTo(FORBIDDEN)
 

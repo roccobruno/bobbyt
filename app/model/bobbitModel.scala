@@ -9,14 +9,7 @@ trait InternalId {
   def getId: String
 }
 
-case class Bobbit(private val id: String = UUID.randomUUID().toString, firstName: String, lastName: String) {
-  def getId = this.id
-}
 
-object Bobbit {
-
-  implicit val format = Json.format[Bobbit]
-}
 
 
 case class Station(name: String, crsCode: String)
@@ -120,34 +113,24 @@ object Job {
 }
 
 
-case class RunningJob(private val id: String = UUID.randomUUID().toString,
-                      fromTime: TimeOfDay, toTime: TimeOfDay, alertSent: Boolean = false,
-                      recurring: Boolean = true, jobId: String, docType: String = "RunningJob")
-  extends InternalId {
+
+
+
+
+case class EmailAlert(private val id: String = UUID.randomUUID().toString,
+                      email: Email,
+                      persisted: Option[DateTime],
+                      sent: Option[DateTime],
+                      jobId: String,
+                      docType: String = "Alert") extends InternalId {
   def getId = this.id
 }
-
-object RunningJob {
-
-  def fromJob(job: Job) = RunningJob(fromTime = job.journey.startsAt,
-    toTime = job.journey.startsAt.plusMinutes(job.journey.durationInMin), jobId = job.getId, recurring = job.journey.recurring)
-
-  implicit val format = Json.format[RunningJob]
-}
-
-case class EmailAlert(private val id: String = UUID.randomUUID().toString,email: Email, persisted: Option[DateTime], sent: Option[DateTime], jobId: String,docType: String = "Alert") extends InternalId {
-  def getId = this.id
-}
-
-case class JobForBobbit(runFrom: Int, runTill: Int, alertSent: Boolean, recurring: Boolean)
 
 object EmailAlert {
   implicit val format = Json.format[EmailAlert]
 }
 
-object JobForBobbit {
-  implicit val format = Json.format[JobForBobbit]
-}
+
 
 
 case class Account(private val id: Option[String] = Some(UUID.randomUUID().toString),

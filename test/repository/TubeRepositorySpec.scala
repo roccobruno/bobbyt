@@ -43,6 +43,27 @@ class TubeRepositorySpec extends Testing {
   }
 
 
+  def tubeLineNoDisruption(id: String) = {
+
+    val json =
+      s"""{
+          |  "name": "$id",
+          |  "lastUpdated": 1481649466183,
+          |  "id": "$id",
+          |  "lineStatuses": [
+          |    {
+          |      "statusSeverityDescription": "Good Service",
+          |      "statusSeverity": 10,
+          |      "validityPeriods": []
+          |    }
+          |  ]
+          |}""".stripMargin
+
+
+    Json.fromJson[TFLTubeService](Json.parse(json)).get
+  }
+
+
   "a repository" should {
 
     "store tube line records" in {
@@ -62,6 +83,20 @@ class TubeRepositorySpec extends Testing {
       await(tubeRepository.deleteById("testLine"))
       val loadResult2 = await(tubeRepository.findById("testLine"))
       loadResult2.isDefined shouldBe false
+    }
+
+
+    "find all lines with disruption" in {
+
+      //insert record in
+      await(tubeRepository.saveTubeService(Seq(tubeLine("testLine"))))
+      await(tubeRepository.saveTubeService(Seq(tubeLineNoDisruption("testLineNoDisruption"))))
+
+      val loadResult = await(tubeRepository.findAllWithDisruption())
+      loadResult.size shouldBe 4
+      await(tubeRepository.deleteById("testLine"))
+      await(tubeRepository.deleteById("testLineNoDisruption"))
+
     }
 
 

@@ -29,91 +29,6 @@ class BobbitRepositorySpec extends Testing {
 
   "a repository" should {
 
-    "return running job to execute" in new WithApplication {
-
-      await(repo.deleteAllRunningJob(), 10 second)
-      await(repo.deleteAllJobs(), 10 second)
-
-      val now = DateTime.now.plusMinutes(2)
-      val hourOfTheDay = now.hourOfDay().get()
-      val minOfTheDay = now.minuteOfHour().get()
-      val startJob = TimeOfDay(hourOfTheDay, minOfTheDay, Some(TimeOfDay.time(hourOfTheDay, minOfTheDay)))
-
-      val job = RunningJob(fromTime = startJob, toTime = startJob.plusMinutes(40), alertSent = false,
-        recurring = true, jobId = UUID.randomUUID().toString)
-      await(repo.saveRunningJob(job))
-      await(repo.saveRunningJob(RunningJob(fromTime = startJob, toTime = startJob.plusMinutes(40), alertSent = false,
-        recurring = true, jobId = UUID.randomUUID().toString)))
-
-      val job1 = RunningJob(fromTime = startJob, toTime = startJob.plusMinutes(50), alertSent = true,
-        recurring = true, jobId = UUID.randomUUID().toString)
-      await(repo.saveRunningJob(job1))
-
-
-      val res = await(repo.findRunningJobToExecute(), 10 second)
-      res.size should be(2)
-
-      res contains job should be(true)
-
-    }
-
-
-    "return running job to execute with end time" in new WithApplication {
-
-      await(repo.deleteAllRunningJob(), 10 second)
-      await(repo.deleteAllJobs(), 10 second)
-
-      val now = DateTime.now.minusMinutes(10)
-      val hourOfTheDay = now.hourOfDay().get()
-      val minOfTheDay = now.minuteOfHour().get()
-      val startJob = TimeOfDay(hourOfTheDay, minOfTheDay, Some(TimeOfDay.time(hourOfTheDay, minOfTheDay)))
-
-      val job = RunningJob(fromTime = startJob, toTime = startJob.plusMinutes(40), alertSent = false,
-        recurring = true, jobId = UUID.randomUUID().toString)
-      await(repo.saveRunningJob(job))
-
-      await(repo.saveRunningJob(RunningJob(fromTime = startJob, toTime = startJob.plusMinutes(40), alertSent = false,
-        recurring = true, jobId = UUID.randomUUID().toString)))
-
-      val job1 = RunningJob(fromTime = startJob, toTime = startJob.plusMinutes(50), alertSent = true,
-        recurring = true, jobId = UUID.randomUUID().toString)
-      await(repo.saveRunningJob(job1))
-
-
-      val res = await(repo.findRunningJobToExecute(), 10 second)
-      res.size should be(2)
-
-      res contains job should be(true)
-
-    }
-
-
-    "return running jobs to reset" in new WithApplication {
-
-      await(repo.deleteAllRunningJob(), 10 second)
-
-      val startJob = startTimeOfDay(now.minusHours(2))
-      val jId = UUID.randomUUID().toString
-      val job = RunningJob(fromTime = startJob, toTime = startJob.plusMinutes(40), alertSent = true,
-        recurring = true, jobId = jId)
-      await(repo.saveRunningJob(job))
-
-      val job1 = RunningJob(fromTime = startJob, toTime = startJob.plusMinutes(50), alertSent = false,
-        recurring = true, jobId = UUID.randomUUID().toString)
-      await(repo.saveRunningJob(job1))
-
-      val startTimeOfDay1 = startTimeOfDay(now.plusMinutes(2))
-      val job2 = RunningJob(fromTime = startTimeOfDay1, toTime = startTimeOfDay1.plusMinutes(50), alertSent = true,
-        recurring = true, jobId = UUID.randomUUID().toString)
-      await(repo.saveRunningJob(job2))
-
-
-      val res = await(repo.findRunningJobToReset(), 10 second)
-      res.size should be(1)
-      res contains job2 should be(true)
-
-    }
-
     "return valid token" in new WithApplication {
 
       await(repo.deleteAllToken())
@@ -125,11 +40,23 @@ class BobbitRepositorySpec extends Testing {
       res contains token should be(true)
     }
 
+    "save alert only if absent" in {
+
+      val email: Email = Email("test", EmailAddress("test@test.it"), "test", EmailAddress("test@test.it"))
+      val jobID: String = UUID.randomUUID().toString
+      val res = await(repo.saveAlertIfAbsent(EmailAlert(email = email, sent = None, persisted = Some(DateTime.now), jobId = jobID)))
+      res.isDefined shouldBe true
+
+      val res2 = await(repo.saveAlertIfAbsent(EmailAlert(email = email, sent = None, persisted = Some(DateTime.now), jobId = jobID)))
+      res2.isDefined shouldBe false
+
+    }
+
     "return jobs affected by tube delays" in new WithApplication() {
 
       await(repo.deleteAllJobs())
 
-      val jobJson = """{
+      def jobJson (hourOfTheDay: Int, minOfTheHour: Int) = s"""{
                   |  "accountId": "accountId",
                   |  "journey": {
                   |    "meansOfTransportation": {
@@ -143,9 +70,9 @@ class BobbitRepositorySpec extends Testing {
                   |    },
                   |    "durationInMin": 40,
                   |    "startsAt": {
-                  |      "hour": 17,
-                  |      "min": 27,
-                  |      "time": 1727
+                  |      "hour": $hourOfTheDay,
+                  |      "min": $minOfTheHour,
+                  |      "time": $hourOfTheDay$minOfTheHour
                   |    },
                   |    "recurring": true
                   |  },
@@ -156,7 +83,7 @@ class BobbitRepositorySpec extends Testing {
                   |    },
                   |    "nameFrom": "name",
                   |    "to": {
-                  |      "value": "from@mss.it"
+                  |      "value": "rocco_bruno@msn.com"
                   |    }
                   |  },
                   |  "docType": "Job",
@@ -165,15 +92,18 @@ class BobbitRepositorySpec extends Testing {
                   |  "title": "jobTile"
                   |}""".stripMargin
 
-       val job = Json.fromJson[Job](Json.parse(jobJson)).get
+
+      private val hourOfTheDay: Int = now().hourOfDay().get()
+      private val minutesOfTheHour: Int = now().minuteOfHour().get()
+      val job = Json.fromJson[Job](Json.parse(jobJson(hourOfTheDay, minutesOfTheHour))).get
 
         await(repo.save(job))
 
 
-      val result = await(repo.findJobsByTubeLineAndRunningTime(Seq(TubeLine("piccadilly","piccadilly")), DateTime.now().withHourOfDay(17).withMinuteOfHour(30)))
+      val result = await(repo.findJobsByTubeLineAndRunningTime(Seq(TubeLine("piccadilly","piccadilly")), DateTime.now().withHourOfDay(hourOfTheDay).withMinuteOfHour(minutesOfTheHour)))
 
       result.size shouldBe 1
-      result(0).id shouldBe "06e0fb68-adb6-4c85-a8cd-923cdd00beaf"
+      result(0).getId shouldBe "06e0fb68-adb6-4c85-a8cd-923cdd00beaf"
 
 
     }

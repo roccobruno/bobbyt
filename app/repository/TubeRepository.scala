@@ -1,12 +1,13 @@
 package repository
 
-import com.couchbase.client.java.{AsyncBucket, CouchbaseCluster}
+import com.couchbase.client.java.AsyncBucket
 import model.TFLTubeService
 import org.asyncouchbase.bucket.BucketApi
 import org.asyncouchbase.index.IndexApi
 import org.asyncouchbase.model.OpsResult
+import org.asyncouchbase.query.Expression._
+import org.asyncouchbase.query.{ANY, SELECT}
 import org.joda.time.DateTime
-import org.reactivecouchbase.ReactiveCouchbaseDriver
 import play.api.Logger
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -14,6 +15,8 @@ import scala.concurrent.Future
 
 
 object TubeRepository extends TubeRepository {
+
+
 
   val cluster = ClusterConfiguration.cluster
   val bucket = new IndexApi {
@@ -30,10 +33,19 @@ object TubeRepository extends TubeRepository {
 
 trait TubeRepository  {
 
+  implicit val validateQuery = false
+
   def bucket: BucketApi
 
   def findById(id: String) = {
     bucket.get[TFLTubeService](id)
+  }
+
+  def findAllWithDisruption(): Future[Seq[ID]] = {
+
+    val query  = SELECT("id") FROM "tube" WHERE (ANY("line") IN "lineStatuses" SATISFIES ("line.disruption" IS_NOT_NULL ) END)
+    bucket.find[ID](query)
+
   }
 
   def saveTubeService(seq: Seq[TFLTubeService]): Future[Seq[OpsResult]] = {

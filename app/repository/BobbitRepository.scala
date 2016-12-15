@@ -63,9 +63,6 @@ trait BobbitRepository {
 
   def bucket: IndexApi
 
-  def deleteAllRunningJob() = deleteAll(findAllRunningJob)
-
-
   def deleteAllJobs() = {
     deleteAll(findAllJob)
   }
@@ -121,9 +118,20 @@ trait BobbitRepository {
 
   def saveAlert(alert: EmailAlert): Future[Option[String]] = save[EmailAlert](alert)
 
+  def saveAlertIfAbsent(alert: EmailAlert): Future[Option[String]] = {
+
+     findAlertByJobId(alert.jobId) flatMap  {
+      case Some(alert) => Future.successful(None)
+      case None =>  saveAlert(alert) map {
+        res => res
+      }
+    }
+  }
+
+
+
   def saveJob(job: Job): Future[Option[String]] = save[Job](job)
 
-  def saveRunningJob(job: RunningJob): Future[Option[String]] = save[RunningJob](job)
 
   def saveToken(token: Token): Future[Option[String]] = {
     implicit val expirationTiming = CouchbaseExpirationTiming_byDuration(Duration.create(30, TimeUnit.MINUTES))
@@ -133,7 +141,6 @@ trait BobbitRepository {
   def saveAccount(account: Account): Future[Option[String]] = save[Account](account)
 
 
-  def findRunningJobById(id: String): Future[Option[RunningJob]] = findById[RunningJob](id)
 
   def findJobById(id: String): Future[Option[Job]] = findById[Job](id)
 
@@ -172,9 +179,6 @@ trait BobbitRepository {
     bucket.find[T](query)
   }
 
-  def findAllRunningJob(): Future[List[RunningJob]] = {
-    findAllByType[RunningJob]("RunningJob")
-  }
 
   def findAllAlert(): Future[List[EmailAlert]] = {
     findAllByType[EmailAlert]("Alert")
@@ -198,67 +202,8 @@ trait BobbitRepository {
     bucket.find[Job](query)
   }
 
-  def findRunningJobByJobId(jobId: String): Future[Option[RunningJob]] = {
-    val query =  SELECT ("*") FROM "bobbit" WHERE ("docType" === "RunningJob" AND "jobId" === jobId)
-    bucket.find[RunningJob](query) map {
-      case head :: tail => Some(head)
-      case Nil => None
-    }
-  }
 
-
-  def findRunningJobToExecute(): Future[Set[RunningJob]] = {
-    for {
-      first <- findRunningJobToExecuteByStartTime()
-      second <- findRunningJobToExecuteByEndTime()
-    } yield (first ++ second).toSet
-  }
-
-  def findRunningJobToExecuteByStartTime(): Future[Seq[RunningJob]] = {
-
-    val now: DateTime = DateTime.now()
-    val timeFrom = timeOfDay(now)
-    val timeTO = timeOfDay(now.plusMinutes(30))
-
-    val query =  SELECT ("*") FROM "bobbit" WHERE
-      ("docType" === "RunningJob" AND "recurring" === true AND "alertSent" === false AND
-        ( "fromTime.time" BETWEEN (timeFrom AND  timeTO)))
-
-    bucket.find[RunningJob](query)
-
-  }
-
-  def findRunningJobToExecuteByEndTime(): Future[Seq[RunningJob]] = {
-
-    val now: DateTime = DateTime.now()
-    val timeFrom = timeOfDay(now)
-    val timeTO = timeOfDay(now.plusMinutes(30))
-
-
-    val query =  SELECT ("*") FROM "bobbit" WHERE
-      ("docType" === "RunningJob" AND "recurring" === true AND "alertSent" === false AND
-        ( "toTime.time" BETWEEN (timeFrom AND  timeTO)))
-
-    bucket.find[RunningJob](query)
-
-  }
-
-
-  def findRunningJobToReset(): Future[Seq[RunningJob]] = {
-
-    val now: DateTime = DateTime.now()
-    val timeTO = timeOfDay(now.minusHours(1))
-
-    val query =  SELECT ("*") FROM "bobbit" WHERE
-      ("docType" === "RunningJob" AND "recurring" === true AND "alertSent" === true AND ("toTime.time" gt timeTO))
-
-    bucket.find[RunningJob](query)
-
-
-  }
-
-
-  def findJobsByTubeLineAndRunningTime(tubeLines: Seq[TubeLine], runningTime: DateTime = DateTime.now()): Future[Seq[ID]] = {
+  def findJobsByTubeLineAndRunningTime(tubeLines: Seq[TubeLine], runningTime: DateTime = DateTime.now()): Future[Seq[Job]] = {
 
 
     val tDay = timeOfDay(runningTime) - 30
@@ -267,9 +212,19 @@ trait BobbitRepository {
 
     val arrayTubeLines = s"[${tubeLines.map(d => s"'${d.id}'").mkString(",")}]"
 
-    val query = SELECT("id") FROM "bobbit" WHERE (("docType" === "Job") AND ( "journey.startsAt.time" BETWEEN (tDay AND fDay))).AND( ANY("line") IN ("journey.meansOfTransportation.tubeLines") SATISFIES ("line.id" IN arrayTubeLines) END)
+    val query = SELECT("*") FROM "bobbit" WHERE (("docType" === "Job") AND ( "journey.startsAt.time" BETWEEN (tDay AND fDay))).AND( ANY("line") IN ("journey.meansOfTransportation.tubeLines") SATISFIES ("line.id" IN arrayTubeLines) END)
 
-    bucket.find[ID](query)
+    bucket.find[Job](query)
+
+  }
+
+  def findAlertByJobId(jobId: String): Future[Option[EmailAlert]] = {
+
+    val query = SELECT("*") FROM "bobbit" WHERE ("docType" === "Alert" AND "jobId" === jobId)
+    bucket.find[EmailAlert](query) map {
+      case head :: tail => Some(head)
+      case Nil => None
+    }
 
   }
 

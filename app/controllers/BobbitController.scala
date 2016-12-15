@@ -57,29 +57,26 @@ class BobbitController @Inject()(system: ActorSystem, wsClient: WSClient, conf: 
 
 
   lazy val tubeServiceActor = system.actorOf(TubeServiceFetchActor.props(TubeServiceRegistry), "tubeServiceActor")
-  lazy val runningActor = system.actorOf(RunningJobActor.props(JobServiceImpl), "runningJobActor")
-  lazy val resetRunningJobActor = system.actorOf(ResetRunningJobActor.props(JobServiceImpl), "resetRunningJobActor")
+  lazy val tubeServiceCheckActor = system.actorOf(TubeServiceCheckerActor.props(JobServiceImpl), "tubeServiceCheckerActor")
   lazy val alertJobActor = system.actorOf(ProcessAlertsJobActor.props(JobServiceImpl), "alertJobActor")
 
 
   lazy val tubeScheduleJob = system.scheduler.schedule(
     0.microseconds, 10000.milliseconds, tubeServiceActor, Run("run"))
 
-  lazy val runningJobScheduleJob = system.scheduler.schedule(
-    0.microseconds, 10000.milliseconds, runningActor, Run("run"))
 
-  lazy val resetRunningJobScheduleJob = system.scheduler.schedule(
-    0.microseconds, 10000.milliseconds, resetRunningJobActor, Run("run"))
+  lazy val tubeCheckerScheduleJob = system.scheduler.schedule(
+    0.microseconds, 10000.milliseconds, tubeServiceCheckActor, Run("run"))
+
 
   lazy val alertJobScheduleJob = system.scheduler.schedule(
     0.microseconds, 10000.milliseconds, alertJobActor, Run("run"))
 
   def fetchTubeLine() = Action.async { implicit request =>
 
-          tubeScheduleJob
-//    runningJobScheduleJob
-//    resetRunningJobScheduleJob
-//    alertJobScheduleJob
+//          tubeScheduleJob
+    tubeCheckerScheduleJob
+    alertJobScheduleJob
     Future.successful(Ok(Json.obj("res" -> true)))
 
   }
@@ -111,7 +108,6 @@ class BobbitController @Inject()(system: ActorSystem, wsClient: WSClient, conf: 
       for {
         del <- repository.deleteAllAlerts()
         del <- repository.deleteAllJobs()
-        del <- repository.deleteAllRunningJob()
         del <- repository.deleteAllAccount()
       } yield Ok
   }
@@ -132,20 +128,6 @@ class BobbitController @Inject()(system: ActorSystem, wsClient: WSClient, conf: 
       }
   }
 
-  def findRunningJobByJobId(jobId: String) = IsAuthenticated { implicit request =>
-    repository.findRunningJobByJobId(jobId) map {
-      case b: Some[RunningJob] => Ok(Json.toJson[RunningJob](b.get))
-      case _ => NotFound
-    }
-  }
-
-
-  def findActiveRunningJob() = IsAuthenticated { implicit request =>
-    JobServiceImpl.findAndProcessActiveJobs() map {
-      case recs => Ok(Json.toJson[Seq[RunningJob]](recs))
-    }
-  }
-
   def findAccount(id: String) = IsAuthenticated { implicit authContext =>
       repository.findAccountById(id) map {
         case b: Some[Account] => Ok(Json.toJson[Account](b.get))
@@ -160,7 +142,6 @@ class BobbitController @Inject()(system: ActorSystem, wsClient: WSClient, conf: 
       val jobToSave = job.copy(id = Some(jobId))
       for {
         Some(id) <- repository.saveJob(jobToSave)
-        runningId <- repository.saveRunningJob(RunningJob.fromJob(jobToSave))
       }  yield Created.withHeaders("Location" -> ("/api/bobbit/" + id))
 
     }
