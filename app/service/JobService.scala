@@ -2,13 +2,17 @@ package service
 
 import model._
 import org.joda.time.DateTime
-import repository.BobbitRepository
+import repository.{BobbitRepository, ID}
 import service.tfl.{TubeConnector, TubeService}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 trait JobService extends TubeService with TubeConnector  {
+  def deleteSentAlerts() = {
+    Future.successful(repo.deleteAll[ID](repo.findAllAlertSentYesterday))
+  }
+
 
   val repo: BobbitRepository
   val mailGunService: MailGunService

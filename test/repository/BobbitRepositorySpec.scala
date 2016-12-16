@@ -146,6 +146,28 @@ class BobbitRepositorySpec extends Testing {
 
     }
 
+    "return alert to delete" in {
+
+      val email: Email = Email("test", EmailAddress("test@test.it"), "test", EmailAddress("test@test.it"))
+      val jobID: String = UUID.randomUUID().toString
+      val res = await(repo.saveAlert(EmailAlert(email = email, sentAt = Some(DateTime.now().minusDays(2)), persisted = DateTime.now, jobId = jobID, sent = true)))
+      val res2 = await(repo.saveAlert(EmailAlert(email = email, sentAt = Some(DateTime.now()), persisted = DateTime.now, jobId = jobID, sent = true)))
+      val res1 = await(repo.saveAlert(EmailAlert(email = email, sentAt = Some(DateTime.now().minusDays(2)), persisted = DateTime.now, jobId = jobID, sent = false)))
+      res.isDefined shouldBe true
+      res2.isDefined shouldBe true
+      res1.isDefined shouldBe true
+
+      val results = await(repo.findAllAlertSentYesterday())
+      results.size shouldBe 1
+      results(0) == res.get
+
+
+      await(repo.deleteById(res.get))
+      await(repo.deleteById(res2.get))
+      await(repo.deleteById(res1.get))
+
+    }
+
 
   }
 

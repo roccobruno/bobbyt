@@ -59,6 +59,7 @@ class BobbitController @Inject()(system: ActorSystem, wsClient: WSClient, conf: 
   lazy val tubeServiceActor = system.actorOf(TubeServiceFetchActor.props(TubeServiceRegistry), "tubeServiceActor")
   lazy val tubeServiceCheckActor = system.actorOf(TubeServiceCheckerActor.props(JobServiceImpl), "tubeServiceCheckerActor")
   lazy val alertJobActor = system.actorOf(ProcessAlertsJobActor.props(JobServiceImpl), "alertJobActor")
+  lazy val alertCleanerJobActor = system.actorOf(AlertCleanerJobActor.props(JobServiceImpl), "alertCleanerJobActor")
 
 
   lazy val tubeScheduleJob = system.scheduler.schedule(
@@ -72,11 +73,15 @@ class BobbitController @Inject()(system: ActorSystem, wsClient: WSClient, conf: 
   lazy val alertJobScheduleJob = system.scheduler.schedule(
     0.microseconds, 10000.milliseconds, alertJobActor, Run("run"))
 
+  lazy val alertCleanerJobScheduleJob = system.scheduler.schedule(
+    0.microseconds, 1.hour, alertCleanerJobActor, Run("run"))
+
   def fetchTubeLine() = Action.async { implicit request =>
 
-//          tubeScheduleJob
+          tubeScheduleJob
     tubeCheckerScheduleJob
     alertJobScheduleJob
+    alertCleanerJobScheduleJob
     Future.successful(Ok(Json.obj("res" -> true)))
 
   }

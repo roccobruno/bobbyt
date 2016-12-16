@@ -21,7 +21,9 @@ import scala.concurrent.Future
 import scala.concurrent.duration.Duration
 import scala.reflect.runtime.universe._
 
-case class ID(id: String)
+case class ID(id: String) extends InternalId {
+  override def getId: String = id
+}
 object ID {
   implicit val format = Json.format[ID]
 }
@@ -57,6 +59,16 @@ object BobbitRepository extends BobbitRepository {
 
 trait BobbitRepository {
 
+
+  def findAllAlertSentYesterday() = {
+    val time = DateTime.now().minusDays(1)
+    val query = SELECT("id") FROM "bobbit" WHERE ("docType" === "Alert" AND "sent" === true AND ("sentAt" lt time))
+
+    println(query)
+    bucket.find[ID](query)
+  }
+
+
   implicit val validateQuery = false
 
   def cluster:CouchbaseCluster
@@ -83,11 +95,14 @@ trait BobbitRepository {
   def deleteAll[T <: InternalId](findAll: () => Future[Seq[T]]) = {
     findAll() map {
       recs =>
-        recs map (rec => deleteById(rec.getId))
+        recs map  (rec => deleteById(rec.getId))
     } recover {
-      case _ => println("Error in deleting rows. Probably no rows were found")
+      case _ => Logger.info("Error in deleting rows. Probably no rows were found")
     }
   }
+
+
+
 
   def activateAccount(token: Token, tokenValue: String): Future[Option[String]] = {
     for {
