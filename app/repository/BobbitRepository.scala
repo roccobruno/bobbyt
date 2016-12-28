@@ -7,7 +7,7 @@ import com.couchbase.client.java.{AsyncBucket, CouchbaseCluster}
 import model.{Job, _}
 import org.asyncouchbase.index.IndexApi
 import org.asyncouchbase.model.OpsResult
-import org.asyncouchbase.query.Expression._
+import org.asyncouchbase.query.ExpressionImplicits._
 import org.asyncouchbase.query.{ANY, SELECT, SimpleQuery}
 import org.joda.time.DateTime
 import org.reactivecouchbase.CouchbaseExpiration.{CouchbaseExpirationTiming, CouchbaseExpirationTiming_byDuration}
@@ -64,7 +64,6 @@ trait BobbitRepository {
     val time = DateTime.now().minusDays(1)
     val query = SELECT("id") FROM "bobbit" WHERE ("docType" === "Alert" AND "sent" === true AND ("sentAt" lt time))
 
-    println(query)
     bucket.find[ID](query)
   }
 
@@ -232,7 +231,7 @@ trait BobbitRepository {
 
     val arrayTubeLines = s"[${tubeLines.map(d => s"'${d.id}'").mkString(",")}]"
 
-    val query = SELECT("*") FROM "bobbit" WHERE (("docType" === "Job") AND ( "journey.startsAt.time" BETWEEN (tDay AND fDay))).AND( ANY("line") IN ("journey.meansOfTransportation.tubeLines") SATISFIES ("line.id" IN arrayTubeLines) END)
+    val query = SELECT("*") FROM "bobbit" WHERE (("docType" === "Job") AND ( "journey.startsAt.time" BETWEEN (tDay AND fDay))).AND( ANY("line") IN ("journey.meansOfTransportation.tubeLines") SATISFIES ("line.id" IN arrayTubeLines))
 
     bucket.find[Job](query)
 

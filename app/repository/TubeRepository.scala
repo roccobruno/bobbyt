@@ -5,7 +5,7 @@ import model.TFLTubeService
 import org.asyncouchbase.bucket.BucketApi
 import org.asyncouchbase.index.IndexApi
 import org.asyncouchbase.model.OpsResult
-import org.asyncouchbase.query.Expression._
+import org.asyncouchbase.query.ExpressionImplicits._
 import org.asyncouchbase.query.{ANY, SELECT}
 import org.joda.time.DateTime
 import play.api.Logger
@@ -43,7 +43,7 @@ trait TubeRepository  {
 
   def findAllWithDisruption(): Future[Seq[ID]] = {
 
-    val query  = SELECT("id") FROM "tube" WHERE (ANY("line") IN "lineStatuses" SATISFIES ("line.disruption" IS_NOT_NULL ) END)
+    val query  = SELECT("id") FROM "tube" WHERE (ANY("line") IN "lineStatuses" SATISFIES ("line.disruption" IS_NOT_NULL ))
     bucket.find[ID](query)
 
   }

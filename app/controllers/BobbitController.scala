@@ -78,7 +78,7 @@ class BobbitController @Inject()(system: ActorSystem, wsClient: WSClient, conf: 
 
   def fetchTubeLine() = Action.async { implicit request =>
 
-          tubeScheduleJob
+//          tubeScheduleJob
     tubeCheckerScheduleJob
     alertJobScheduleJob
     alertCleanerJobScheduleJob
