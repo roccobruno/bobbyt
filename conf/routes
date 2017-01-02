@@ -24,6 +24,7 @@ POST    /api/bobbit/login                        controllers.BobbitController.lo
 POST    /api/bobbit/logout                       controllers.BobbitController.logout
 GET     /api/bobbit/token/validate/:token        controllers.BobbitController.validateToken(token: String)
 
+GET     /api/bobbit/callback                     controllers.TokenController.callback
 
 
 DELETE   /api/bobbit/delete-all                controllers.BobbitController.deleteAll
