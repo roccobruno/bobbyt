@@ -136,26 +136,32 @@ object EmailAlert {
 
 case class Account(private val id: Option[String] = Some(UUID.randomUUID().toString),
                    userName: String,
-                   firstName: Option[String] = None,
-                   lastName:Option[String] = None,
-                   email:EmailAddress,
+                   firstName: Option[String] = None, //it might be none if user uses FB to login
+                   lastName:Option[String] = None, //it might be none if user uses FB to login
+                   email: Option[EmailAddress] = None,//it might be none if user uses FB to login
                    docType: String = "Account",
-                   psw: String,
-                   active:Boolean = false)
+                   psw: Option[String], //it might be none if user uses FB to login
+                   active:Boolean = true)
   extends InternalId {
   def getId = this.id.getOrElse(throw new IllegalStateException("found an Account without an ID!!!"))
 }
+
+
 object Account {
   implicit val format = Json.format[Account]
 }
 
 
 case class Token(private val id: Option[String] = Some(UUID.randomUUID().toString),
-                 token : String, accountId: String ,
+                 token : String,
+                 accountId: Option[String] = None,
                  docType: String = "Token",
-                 lastTimeUpdate: DateTime = DateTime.now()) extends InternalId {
+                 lastTimeUpdate: DateTime = DateTime.now(),
+                 userId: String) extends InternalId {
   def getId = this.id.getOrElse(throw new IllegalStateException("found an Token without an ID!!!"))
 }
+
+
 object Token {
   implicit val format = Json.format[Token]
 }

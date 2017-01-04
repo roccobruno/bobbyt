@@ -105,8 +105,8 @@ trait BobbitRepository {
 
   def activateAccount(token: Token, tokenValue: String): Future[Option[String]] = {
     for {
-      acc <- findById[Account](token.accountId)
-      resultSaving <- saveAccount(acc, token.accountId)
+      acc <- findById[Account](token.accountId.getOrElse("None"))
+      resultSaving <- saveAccount(acc, token.accountId.getOrElse("None"))
       result <- deleteById(token.getId)
     } yield result
 
@@ -164,6 +164,14 @@ trait BobbitRepository {
 
   def findValidTokenByValue(token: String): Future[Option[Token]] = {
     val query =  SELECT ("*") FROM "bobbit" WHERE ("token" === token AND "docType" === "Token")
+    bucket.find[Token](query) map {
+      case head:: tail => Some(head)
+      case Nil => None
+    }
+  }
+
+  def findTokenByUserId(userId: String): Future[Option[Token]] = {
+    val query =  SELECT ("*") FROM "bobbit" WHERE ("userId" === userId AND "docType" === "Token")
     bucket.find[Token](query) map {
       case head:: tail => Some(head)
       case Nil => None

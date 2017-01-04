@@ -9,43 +9,58 @@ import scala.util.{Failure, Success}
 
 class Auth0ConfigSpec extends Testing {
 
+  trait Setup {
+
+    val expiry: Long = DateTime.now().plusHours(1).getMillis
+
+    val created = DateTime.now().getMillis
+    val jwt = new DecodedJwt(Seq(Alg(Algorithm.HS256), Typ("JWT")), Seq(Iss("readme"), Sub("test"), Aud("test"), Exp(expiry), Iat(created)))
+    lazy val secret = "secret"
+
+    val token = jwt.encodedAndSigned(secret)
+
+
+    def decode = {
+      DecodedJwt.validateEncodedJwt(
+        token, // An encoded jwt as a string
+        "secret", // The key to validate the signature against
+        Algorithm.HS256, // The algorithm we require
+        Set(Typ), // The set of headers we require (excluding alg)
+        Set(Iss, Sub, Aud, Exp, Iat) // The set of claims we require
+      ) match {
+        case s: Success[Jwt] => Right(JwtToken(
+          s.value.getClaim[Iss].get.value,
+          s.value.getClaim[Sub].get.value,
+          s.value.getClaim[Aud].get.value.left.get,
+          new DateTime(s.value.getClaim[Exp].get.value),
+          new DateTime(s.value.getClaim[Iat].get.value),
+          token))
+        case Failure(e) => Logger.info(s"received not valid token $token. Error: ${e.getMessage}"); Left(s"Error -  ${e.getMessage}")
+      }
+
+
+    }
+
+
+  }
 
   "a auth0 config " should {
 
-    "return Right" in {
+    "return Right with valid token" in new Setup {
+      decode shouldBe Right(JwtToken("readme", "test", "test",
+        new DateTime(expiry), new DateTime(created), token))
 
+    }
 
-  val token = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczovL3JvY2NvYnJ1bm8uZXUuYXV0aDAuY29tLyIsInN1YiI6ImZhY2Vib29rfDEwMjExNzE5NDI1MTY5MjU0IiwiYXVkIjoiaUw1a3FCbGc5eTJQT1NrQ0tMNUVvTmNZaVFoMjM0N2kiLCJleHAiOjE0ODM0MjMyNDcsImlhdCI6MTQ4MzM4NzI0N30.YjyyPo5oa5r176x0cJjf6GaQAidoJZpYVJi6i3EuKfU"
+    "return left with message in case of expired token" in new Setup {
+      override val expiry = DateTime.now().minusHours(1).getMillis / 1000
+      decode shouldBe Left("Error -  Jwt has expired")
 
-     val ers = DecodedJwt.validateEncodedJwt(
-        token,                       // An encoded jwt as a string
-        "",                  // The key to validate the signature against
-        Algorithm.HS256,           // The algorithm we require
-       Set(Typ),                  // The set of headers we require (excluding alg)
-       Set(Iss, Sub, Aud, Exp, Iat)                  // The set of claims we require
-      ) match {
-        case s:Success[Jwt] => Right(JwtToken(
-          s.value.getClaim[Iss].get.value,
-          s.value.getClaim[Sub].get.value,
-//          s.value.getClaim[Aud].get.value.right.get(0),
-          "", //TODO
-          new DateTime(s.value.getClaim[Exp].get.value),
-          new DateTime(s.value.getClaim[Iat].get.value)))
-        case Failure(e) => Logger.info(s"received not valid token $token. Error: ${e.getMessage}"); Left(s"Error -  ${e.getMessage}")
-     }
+    }
 
-
-      /*
-      {
-  "iss": "https://roccobruno.eu.auth0.com/",
-  "sub": "facebook|10211719425169254",
-  "aud": "iL5kqBlg9y2POSkCKL5EoNcYiQh2347i",
-  "exp": 1483423247,
-  "iat": 1483387247
-}
-       */
-   ers shouldBe Right(JwtToken("XXXX","XXXX",
-     new DateTime(1483423247), new DateTime(1483387247)))
+    "return left with message in case of not valid token, signed with wrong secret" in new Setup {
+      override lazy val secret = "wrong-sercret"
+      decode shouldBe Left("Error -  Signature is incorrect")
 
     }
 

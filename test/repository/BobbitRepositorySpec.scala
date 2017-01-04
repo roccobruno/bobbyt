@@ -32,7 +32,7 @@ class BobbitRepositorySpec extends Testing {
     "return valid token" in new WithApplication {
 
       await(repo.deleteAllToken())
-      private val token = Token(token = "token", accountId = "accountId")
+      private val token = Token(token = "token", accountId = Some("accountId"), userId = "userId")
       await(repo.saveToken(token))
 
       val res = await(repo.findValidTokenByValue("token"), 10 second)

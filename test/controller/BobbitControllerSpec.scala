@@ -27,7 +27,7 @@ class BobbitControllerSpec extends Specification  {
 
   trait Setup extends WithApplication {
     val bobbitRepos = BobbitRepository
-    val tokenForSecurity = Token(token = BearerTokenGenerator.generateSHAToken("account-token"), accountId = "accountId")
+    val tokenForSecurity = Token(token = BearerTokenGenerator.generateSHAToken("account-token"), accountId = Some("accountId"), userId = "userId")
     def saveToken = {
       bobbitRepos.saveToken(tokenForSecurity)
     }
@@ -91,7 +91,7 @@ class BobbitControllerSpec extends Specification  {
 
     "return 201 and create account record" in new Setup() {
       cleanUpDBAndCreateToken
-      val account = Account(userName = "neo13",email = EmailAddress("test@test.it"), psw ="passw")
+      val account = Account(userName = "neo13",email = Some(EmailAddress("test@test.it")), psw = Some("passw"))
       private val toJson = Json.toJson(account)
 
       val response = route(implicitApp,FakeRequest(POST, "/api/bobbit/account").withBody(Json.parse("""{"userName":"neo13","email":{"value":"test@test.it"},"psw":"passw","active":false, "docType":"Account"}""")))
@@ -118,7 +118,8 @@ class BobbitControllerSpec extends Specification  {
 
       val username: String = "neo13"
       val passw: String = "passw"
-      val account = Account(userName = username,firstName = Some("Rocco"),lastName = Some("Bruno"), email = EmailAddress("test@test.it"), psw =passw)
+      val account = Account(userName = username,firstName = Some("Rocco"),lastName = Some("Bruno"), email = Some(EmailAddress("test@test.it")),
+        psw = Some(passw))
       val response = route(implicitApp,FakeRequest(POST, "/api/bobbit/account").withBody(Json.toJson(account)))
       status(response.get) must equalTo(CREATED)
 
