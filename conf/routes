@@ -7,24 +7,24 @@
 GET     /assets/*file               controllers.Assets.versioned(path="/public", file: Asset)
 
 
-#bobbit Api
-GET    /api/bobbit/fetch                    controllers.BobbitController.fetchTubeLine
-GET    /api/bobbit/:id                      controllers.BobbitController.find(id:String)
-POST   /api/bobbit                          controllers.BobbitController.save
-DELETE /api/bobbit/:id                      controllers.BobbitController.delete(id:String)
-GET    /api/bobbit/job/all                  controllers.BobbitController.findAllJobByToken
+#bobbyt Api
+GET    /api/bobbyt/fetch                    controllers.BobbytController.fetchTubeLine
+GET    /api/bobbyt/:id                      controllers.BobbytController.find(id:String)
+POST   /api/bobbyt                          controllers.BobbytController.save
+DELETE /api/bobbyt/:id                      controllers.BobbytController.delete(id:String)
+GET    /api/bobbyt/job/all                  controllers.BobbytController.findAllJobByToken
 
 #Account
-GET     /api/bobbit/account/load                      controllers.BobbitController.findAccountByToken
-POST    /api/bobbit/account                      controllers.BobbitController.account
-GET     /api/bobbit/account/:id                  controllers.BobbitController.findAccount(id:String)
-GET     /api/bobbit/account/username/:username   controllers.BobbitController.checkUserName(username: String)
-GET     /api/bobbit/account/validate/:token      controllers.BobbitController.validateAccount(token: String)
-POST    /api/bobbit/login                        controllers.BobbitController.login
-POST    /api/bobbit/logout                       controllers.BobbitController.logout
-GET     /api/bobbit/token/validate/:token        controllers.BobbitController.validateToken(token: String)
+GET     /api/bobbyt/account/load                 controllers.BobbytController.findAccountByToken
+POST    /api/bobbyt/account                      controllers.BobbytController.account
+GET     /api/bobbyt/account/:id                  controllers.BobbytController.findAccount(id:String)
+GET     /api/bobbyt/account/username/:username   controllers.BobbytController.checkUserName(username: String)
+POST    /api/bobbyt/account/validate             controllers.BobbytController.validateAccount
+POST    /api/bobbyt/login                        controllers.BobbytController.login
+POST    /api/bobbyt/logout                       controllers.BobbytController.logout
+GET     /api/bobbyt/token/validate/:token        controllers.BobbytController.validateToken(token: String)
 
-GET     /api/bobbit/callback                     controllers.TokenController.callback
+GET     /api/bobbyt/callback                     controllers.TokenController.callback
 
 
-DELETE   /api/bobbit/delete-all                controllers.BobbitController.deleteAll
+DELETE   /api/bobbyt/delete-all                controllers.BobbytController.deleteAll

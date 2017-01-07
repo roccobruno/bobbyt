@@ -6,7 +6,7 @@ import org.mockito.Matchers.{any, eq => meq}
 import org.mockito.Mockito._
 import play.api.Configuration
 import play.api.libs.ws.WSClient
-import repository.{BobbitRepository, TubeRepository}
+import repository.{BobbytRepository, TubeRepository}
 
 import scala.concurrent.Future
 class JobServiceSpec extends  Testing {
@@ -14,12 +14,12 @@ class JobServiceSpec extends  Testing {
   trait Setup {
 
 
-     val repoMock = mock(classOf[BobbitRepository])
+     val repoMock = mock(classOf[BobbytRepository])
      val tubeMock = mock(classOf[TubeRepository])
      val mailGunMock = mock(classOf[MailGunService])
 
      val service = new JobService {
-      override val repo: BobbitRepository = repoMock
+      override val repo: BobbytRepository = repoMock
       override val ws: WSClient = mock(classOf[WSClient])
       override val tubeRepository: TubeRepository = tubeMock
 

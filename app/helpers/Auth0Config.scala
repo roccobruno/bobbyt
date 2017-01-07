@@ -22,7 +22,7 @@ object Auth0Config {
 
     DecodedJwt.validateEncodedJwt(
       jwt,                       // An encoded jwt as a string
-      get().secret,                  // The key to validate the signature against
+      "secret",                  // The key to validate the signature against
       Algorithm.HS256,           // The algorithm we require
       Set(Typ),                  // The set of headers we require (excluding alg)
       Set(Iss, Sub, Aud, Exp, Iat)                  // The set of claims we require
@@ -36,11 +36,13 @@ object Auth0Config {
         jwt))
       case Failure(e) => Logger.info(s"received not valid token $jwt. Error: ${e.getMessage}"); Left(s"Error -  ${e.getMessage}")
     }
-
-
   }
+
+
 }
 
 case class JwtToken(iss: String,sub :String, aud: String, exp: DateTime, iat: DateTime, token: String) {
   def userId = iss // TODO
 }
+
+case class EncodedJwtToken(value: String)

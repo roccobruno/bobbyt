@@ -12,7 +12,7 @@ import play.api.http.HeaderNames
 import play.api.libs.json._
 import play.api.libs.ws.WSClient
 import play.api.mvc._
-import repository.{BobbitRepository, TubeRepository}
+import repository.{BobbytRepository, TubeRepository}
 import service.tfl.{TubeConnector, TubeService}
 import service.{BearerTokenGenerator, JobService, MailGunService, TokenService}
 
@@ -21,13 +21,14 @@ import scala.concurrent.Future
 import scala.concurrent.duration._
 
 
-class BobbitController @Inject()(system: ActorSystem, wsClient: WSClient, conf: Configuration) extends Controller with JsonParser with Securing with TokenChecker{
-  val repository: BobbitRepository = BobbitRepository
+class BobbytController @Inject()(system: ActorSystem, wsClient: WSClient, conf: Configuration) extends
+  Controller with JsonParser with Securing with TokenChecker {
+  val repository: BobbytRepository = BobbytRepository
 
   def getTubRepository = TubeRepository
 
   object TokenService extends TokenService {
-    override val bobbitRepository: BobbitRepository = repository
+    override val bobbytRepository: BobbytRepository = repository
   }
 
   object JobServiceImpl extends JobService {
@@ -78,7 +79,7 @@ class BobbitController @Inject()(system: ActorSystem, wsClient: WSClient, conf: 
 
   def fetchTubeLine() = Action.async { implicit request =>
 
-//          tubeScheduleJob
+    //          tubeScheduleJob
     tubeCheckerScheduleJob
     alertJobScheduleJob
     alertCleanerJobScheduleJob
@@ -86,24 +87,29 @@ class BobbitController @Inject()(system: ActorSystem, wsClient: WSClient, conf: 
 
   }
 
-  def find(id: String) = IsAuthenticated { implicit request =>
-    repository.findJobById(id) map {
-      case b: Some[Job] => Ok(Json.toJson[Job](b.get))
-      case _ => NotFound
+  def find(id: String) = Action.async { implicit request =>
+    WithAuthorization { token =>
+      repository.findJobById(id) map {
+        case b: Some[Job] => Ok(Json.toJson[Job](b.get))
+        case _ => NotFound
+      }
     }
   }
 
-  def findAllJobByToken() = IsAuthenticated { implicit authContext =>
-     repository.findAllJobByAccountId(authContext.token.accountId.getOrElse("none")) map {
-       case list:Seq[Job] => Ok(Json.toJson(list))
-     }
+  def findAllJobByToken() =  Action.async { implicit request =>
+    WithAuthorization { token =>
+      repository.findAllJobByAccountId(token.userId) map {
+        case list: Seq[Job] => Ok(Json.toJson(list))
+      }
+    }
   }
 
-  def findAccountByToken() = IsAuthenticated { implicit authContext =>
-    println(s"findAccountByToken $authContext")
-    repository.findAccountById(authContext.token.accountId.getOrElse("none")) map {
-      case Some(account) =>  Ok(Json.toJson(account))
-      case _ => NotFound
+  def findAccountByToken() = Action.async { implicit authContext =>
+    WithAuthorization { token =>
+      repository.findAccountById(token.userId) map {
+        case Some(account) => Ok(Json.toJson(account))
+        case _ => NotFound
+      }
     }
   }
 
@@ -134,12 +140,12 @@ class BobbitController @Inject()(system: ActorSystem, wsClient: WSClient, conf: 
   }
 
   def findAccount(id: String) = Action.async { implicit request =>
-      WithAuthorization { token =>
-        repository.findAccountById(id) map {
-          case b: Some[Account] => Ok(Json.toJson[Account](b.get))
-          case _ => NotFound
-        }
+    WithAuthorization { token =>
+      repository.findAccountById(id) map {
+        case b: Some[Account] => Ok(Json.toJson[Account](b.get))
+        case _ => NotFound
       }
+    }
   }
 
 
@@ -147,31 +153,33 @@ class BobbitController @Inject()(system: ActorSystem, wsClient: WSClient, conf: 
     WithAuthorization { token =>
       val jobId = UUID.randomUUID().toString
       withJsonBody[Job] { job =>
-        val jobToSave = job.copy(id = Some(jobId))
+        val jobToSave = job.copy(id = Some(jobId), accountId = token.userId)
         for {
           Some(id) <- repository.saveJob(jobToSave)
-        } yield Created.withHeaders("Location" -> ("/api/bobbit/" + id))
+        } yield Created.withHeaders("Location" -> ("/api/bobbyt/" + id))
 
       }
     }
   }
 
-  def checkUserName(userName: String) = IsAuthenticated {implicit request =>
+  def checkUserName(userName: String) = IsAuthenticated { implicit request =>
     repository.findAccountByUserName(userName) map {
       case head :: tail => Ok
       case Nil => NotFound
     }
   }
 
-  def validateAccount(token: String) = Action.async {
-    val res = (for {
-      tk <- FutureO(repository.findValidTokenByValue(token))
-      result <- FutureO(repository.activateAccount(tk, token))
-    } yield result).future
+  def validateAccount() = Action.async { implicit request =>
+    WithAuthorization { token =>
+      val res = (for {
+        tk <- FutureO(repository.findValidTokenByValue(token.token))
+        result <- FutureO(repository.activateAccount(tk, token.token))
+      } yield result).future
 
-    res map {
-      case Some(id) => Redirect("/accountactive")
-      case None => BadRequest(Json.obj("message" -> JsString(""))) //TODO
+      res map {
+        case Some(id) => Redirect("/accountactive")
+        case None => BadRequest(Json.obj("message" -> JsString(""))) //TODO
+      }
     }
   }
 
@@ -185,32 +193,32 @@ class BobbitController @Inject()(system: ActorSystem, wsClient: WSClient, conf: 
   //TODO send email to confirm account
   def account() = Action.async(parse.json) { implicit request =>
     val accId = UUID.randomUUID().toString
-    withJsonBody[Account]{ account =>
-    val accountToSave = account.copy(id = Some(accId))
+    withJsonBody[Account] { account =>
+      val accountToSave = account.copy(id = Some(accId))
       for {
-       account <- repository.saveAccount(accountToSave)
-       token = BearerTokenGenerator.generateSHAToken("account-token")
-       _ <- repository.saveToken(Token(token = token, accountId = Some(accId), userId = ""))
-      } yield Created.withHeaders(LOCATION -> ("/api/bobbit/account/" + accId),HeaderNames.AUTHORIZATION -> token )
+        account <- repository.saveAccount(accountToSave)
+        token <- generateToken(accountToSave)
+        _ <- repository.saveToken(Token(token = token.value, accountId = Some(accId), userId = ""))
+      } yield Created.withHeaders(LOCATION -> ("/api/bobbyt/account/" + accId), HeaderNames.AUTHORIZATION -> s"Bearer ${token.value}")
     }
   }
 
   def submitProfile() = Action.async(parse.json) { implicit request =>
     val accId = UUID.randomUUID().toString
     WithAuthorization { jwtToken =>
-        withJsonBody[Account]{ account =>
-          val accountToSave = account.copy(id = Some(accId))
-          for {
-            account <- repository.saveAccount(accountToSave)
-          } yield Created.withHeaders(LOCATION -> ("/api/bobbit/account/" + accId), HeaderNames.AUTHORIZATION -> jwtToken.token )
-        }
+      withJsonBody[Account] { account =>
+        val accountToSave = account.copy(id = Some(accId))
+        for {
+          account <- repository.saveAccount(accountToSave)
+        } yield Created.withHeaders(LOCATION -> ("/api/bobbyt/account/" + accId), HeaderNames.AUTHORIZATION -> jwtToken.token)
+      }
     }
   }
 
   def loginWithToken() = Action.async(parse.json) { implicit request =>
     WithAuthorization {
       jwtToken =>
-         repository.findTokenByUserId(jwtToken.userId) flatMap {
+        repository.findTokenByUserId(jwtToken.userId) flatMap {
           case Some(token) => Future.successful(Results.Ok)
           case None => {
             repository.saveToken(Token(token = jwtToken.token, userId = jwtToken.userId)) map {
@@ -224,19 +232,19 @@ class BobbitController @Inject()(system: ActorSystem, wsClient: WSClient, conf: 
   }
 
   def login() = Action.async(parse.json) { implicit request =>
-    withJsonBody[Login]{ login =>
+    withJsonBody[Login] { login =>
 
-       repository.findAccountByUserName(login.username) flatMap  {
-            case Seq(account) if (account.active && account.psw == login.password) => {
-                       val token  = BearerTokenGenerator.generateSHAToken("account-token")
-                       repository.saveToken(Token(token = token,accountId = Some(account.getId),userId ="")) map  {
-                           case Some(id) => Ok.withCookies(Cookie("token",token,httpOnly = false))
-                           case _ => println(s"Error saving token for account ${account.getId} in login");InternalServerError
-                       }
-                 }
-            case Seq(account) => Future.successful(Unauthorized)
-            case Nil => Future.successful(NotFound)
-       }
+      repository.findAccountByUserName(login.username) flatMap {
+        case Seq(account) if (account.active && account.psw == login.password) => {
+          val token = BearerTokenGenerator.generateSHAToken("account-token")
+          repository.saveToken(Token(token = token, accountId = Some(account.getId), userId = "")) map {
+            case Some(id) => Ok.withCookies(Cookie("token", token, httpOnly = false))
+            case _ => println(s"Error saving token for account ${account.getId} in login"); InternalServerError
+          }
+        }
+        case Seq(account) => Future.successful(Unauthorized)
+        case Nil => Future.successful(NotFound)
+      }
 
     }
 
@@ -244,10 +252,10 @@ class BobbitController @Inject()(system: ActorSystem, wsClient: WSClient, conf: 
 
   def logout() = Action.async { implicit request =>
     request.headers.get(HeaderNames.AUTHORIZATION) match {
-      case Some(token) => TokenService.deleteToken(token) map {
-        case _ => Ok.withCookies(Cookie("token","",httpOnly = false))
+      case Some(token) => TokenService.deleteToken(token.split(" ")(1)) map {
+        case _ => Ok.withCookies(Cookie("token", "", httpOnly = false))
       }
-      case _ => Future.successful(Ok.withCookies(Cookie("token","",httpOnly = false)))
+      case _ => Future.successful(Ok.withCookies(Cookie("token", "", httpOnly = false)))
     }
   }
 

@@ -162,6 +162,7 @@ case class Token(private val id: Option[String] = Some(UUID.randomUUID().toStrin
 }
 
 
+
 object Token {
   implicit val format = Json.format[Token]
 }

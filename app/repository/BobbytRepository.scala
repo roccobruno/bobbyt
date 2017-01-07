@@ -2,17 +2,13 @@ package repository
 
 import java.util.concurrent.TimeUnit
 
-import com.couchbase.client.java.query.N1qlQuery
 import com.couchbase.client.java.{AsyncBucket, CouchbaseCluster}
 import model.{Job, _}
 import org.asyncouchbase.index.IndexApi
 import org.asyncouchbase.model.OpsResult
 import org.asyncouchbase.query.ExpressionImplicits._
-import org.asyncouchbase.query.{ANY, SELECT, SimpleQuery}
+import org.asyncouchbase.query.{ANY, SELECT}
 import org.joda.time.DateTime
-import org.reactivecouchbase.CouchbaseExpiration.{CouchbaseExpirationTiming, CouchbaseExpirationTiming_byDuration}
-import org.reactivecouchbase.N1QLQuery
-import org.reactivecouchbase.client.Constants
 import play.api.Logger
 import play.api.libs.json._
 
@@ -28,12 +24,12 @@ object ID {
   implicit val format = Json.format[ID]
 }
 
-object BobbitRepository extends BobbitRepository {
+object BobbytRepository extends BobbytRepository {
 
 
   val cluster = ClusterConfiguration.cluster
   val bucket = new IndexApi {
-    override def asyncBucket: AsyncBucket = cluster.openBucket("bobbit").async()
+    override def asyncBucket: AsyncBucket = cluster.openBucket("bobbyt").async()
   }
 
 
@@ -57,12 +53,14 @@ object BobbitRepository extends BobbitRepository {
 }
 
 
-trait BobbitRepository {
+trait BobbytRepository {
+  
+  val BUCKET_NAME = "bobbyt"
 
 
   def findAllAlertSentYesterday() = {
     val time = DateTime.now().minusDays(1)
-    val query = SELECT("id") FROM "bobbit" WHERE ("docType" === "Alert" AND "sent" === true AND ("sentAt" lt time))
+    val query = SELECT("id") FROM BUCKET_NAME WHERE ("docType" === "Alert" AND "sent" === true AND ("sentAt" lt time))
 
     bucket.find[ID](query)
   }
@@ -119,12 +117,12 @@ trait BobbitRepository {
     }
   }
 
-  def save[T <: InternalId](entity: T)(implicit expirationTime: CouchbaseExpirationTiming = Constants.expiration, writes: Writes[T]):
+  def save[T <: InternalId](entity: T)(implicit writes: Writes[T]):
   Future[Option[String]] = {
     val id = entity.getId
     bucket.upsert[T](id, entity) map {
       case o: OpsResult if o.isSuccess => Some(id)
-      case o: OpsResult => println(s"error in saving entity: $entity - opResult:${o.msg}"); None
+      case o: OpsResult => Logger.warn(s"error in saving entity: $entity - opResult:${o.msg}"); None
     }
   }
 
@@ -148,7 +146,6 @@ trait BobbitRepository {
 
 
   def saveToken(token: Token): Future[Option[String]] = {
-    implicit val expirationTiming = CouchbaseExpirationTiming_byDuration(Duration.create(30, TimeUnit.MINUTES))
     save[Token](token)
   }
 
@@ -163,7 +160,7 @@ trait BobbitRepository {
   def findById[T](id: String)(implicit rds: Reads[T]): Future[Option[T]] = bucket.get[T](id)
 
   def findValidTokenByValue(token: String): Future[Option[Token]] = {
-    val query =  SELECT ("*") FROM "bobbit" WHERE ("token" === token AND "docType" === "Token")
+    val query =  SELECT ("*") FROM BUCKET_NAME WHERE ("token" === token AND "docType" === "Token")
     bucket.find[Token](query) map {
       case head:: tail => Some(head)
       case Nil => None
@@ -171,7 +168,7 @@ trait BobbitRepository {
   }
 
   def findTokenByUserId(userId: String): Future[Option[Token]] = {
-    val query =  SELECT ("*") FROM "bobbit" WHERE ("userId" === userId AND "docType" === "Token")
+    val query =  SELECT ("*") FROM BUCKET_NAME WHERE ("userId" === userId AND "docType" === "Token")
     bucket.find[Token](query) map {
       case head:: tail => Some(head)
       case Nil => None
@@ -181,7 +178,7 @@ trait BobbitRepository {
 
   def findAccountByUserName(userName: String): Future[List[Account]] = {
 
-    val query =  SELECT ("*") FROM "bobbit" WHERE ("userName" === userName AND "docType" === "Account")
+    val query =  SELECT ("*") FROM BUCKET_NAME WHERE ("userName" === userName AND "docType" === "Account")
     bucket.find[Account](query)
 
   }
@@ -191,13 +188,13 @@ trait BobbitRepository {
 
     bucket.delete(id) map {
       case o: OpsResult if o.isSuccess => Some(id)
-      case o: OpsResult => println(s"error in deleting object with id: $id, opResult:${o.msg}"); None
+      case o: OpsResult => Logger.warn(s"error in deleting object with id: $id, opResult:${o.msg}"); None
     }
   }
 
 
   def findAllByType[T: TypeTag](docType: String)(implicit rds: Reads[T]): Future[List[T]] = {
-    val query =  SELECT ("*") FROM "bobbit" WHERE ("docType" === docType)
+    val query =  SELECT ("*") FROM BUCKET_NAME WHERE ("docType" === docType)
     bucket.find[T](query)
   }
 
@@ -207,7 +204,7 @@ trait BobbitRepository {
   }
 
   def findAllAlertNotSent(): Future[List[EmailAlert]] = {
-    val query =  SELECT ("*") FROM "bobbit" WHERE ("docType" === "Alert" AND "sent" === false)
+    val query =  SELECT ("*") FROM BUCKET_NAME WHERE ("docType" === "Alert" AND "sent" === false)
     bucket.find[EmailAlert](query)
   }
 
@@ -225,7 +222,7 @@ trait BobbitRepository {
 
   def findAllJobByAccountId(accountId: String): Future[List[Job]] = {
 
-    val query =  SELECT ("*") FROM "bobbit" WHERE ("docType" === "Job" AND "accountId" === accountId)
+    val query =  SELECT ("*") FROM BUCKET_NAME WHERE ("docType" === "Job" AND "accountId" === accountId)
     bucket.find[Job](query)
   }
 
@@ -239,7 +236,7 @@ trait BobbitRepository {
 
     val arrayTubeLines = s"[${tubeLines.map(d => s"'${d.id}'").mkString(",")}]"
 
-    val query = SELECT("*") FROM "bobbit" WHERE (("docType" === "Job") AND ( "journey.startsAt.time" BETWEEN (tDay AND fDay))).AND( ANY("line") IN ("journey.meansOfTransportation.tubeLines") SATISFIES ("line.id" IN arrayTubeLines))
+    val query = SELECT("*") FROM BUCKET_NAME WHERE (("docType" === "Job") AND ( "journey.startsAt.time" BETWEEN (tDay AND fDay))).AND( ANY("line") IN ("journey.meansOfTransportation.tubeLines") SATISFIES ("line.id" IN arrayTubeLines))
 
     bucket.find[Job](query)
 
@@ -247,7 +244,7 @@ trait BobbitRepository {
 
   def findAlertByJobIdAndSentValue(jobId: String, sent: Boolean = false): Future[Option[EmailAlert]] = {
 
-    val query = SELECT("*") FROM "bobbit" WHERE ("docType" === "Alert" AND "jobId" === jobId AND "sent" === sent)
+    val query = SELECT("*") FROM BUCKET_NAME WHERE ("docType" === "Alert" AND "jobId" === jobId AND "sent" === sent)
     bucket.find[EmailAlert](query) map {
       case head :: tail => Some(head)
       case Nil => None
@@ -257,7 +254,7 @@ trait BobbitRepository {
 
   def findAlertByJobId(jobId: String): Future[Option[EmailAlert]] = {
 
-    val query = SELECT("*") FROM "bobbit" WHERE ("docType" === "Alert" AND "jobId" === jobId)
+    val query = SELECT("*") FROM BUCKET_NAME WHERE ("docType" === "Alert" AND "jobId" === jobId)
     bucket.find[EmailAlert](query) map {
       case head :: tail => Some(head)
       case Nil => None

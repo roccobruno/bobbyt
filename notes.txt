@@ -23,3 +23,25 @@ scheduledJobs to create:
 - Job Reset - find jobs to reset + reset jobs + actor OK
 
 
+
+LOGIN FLOWS
+
+- From FB
+  - 1) post token + validate + save
+  - 2) post profile (from FB) to create account
+
+
+- From App
+  - 1) check creds by userId + create JwtToken
+
+SIGN UP
+
+- From FB
+  - 1) post token + validate + save
+  - 2) post profile (from FB) to create account
+
+- From App
+  - 1) save account + login user
+
+
+

@@ -2,7 +2,7 @@ package service
 
 import model._
 import org.joda.time.DateTime
-import repository.{BobbitRepository, ID}
+import repository.{BobbytRepository, ID}
 import service.tfl.{TubeConnector, TubeService}
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -14,7 +14,7 @@ trait JobService extends TubeService with TubeConnector  {
   }
 
 
-  val repo: BobbitRepository
+  val repo: BobbytRepository
   val mailGunService: MailGunService
   val ALERT_SENT = true
   val ALERT_NOT_SENT = false

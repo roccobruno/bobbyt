@@ -10,7 +10,7 @@ import scala.concurrent.Future
 
 trait Securing {
 
-  self: BobbitController =>
+  self: BobbytController =>
 
   def authToken(implicit request: Request[_]) = {
     request.headers.get(HeaderNames.AUTHORIZATION)

@@ -33,7 +33,7 @@ echo "Web db interface settings"
 curl -u Administrator:Administrator -X POST  http://localhost:8091/settings/web -d 'password=Administrator&username=Administrator&port=SAME'
 echo ""
 echo "Buckets settings"
-curl -u Administrator:Administrator -X POST  http://localhost:8091/pools/default/buckets -d 'ramQuotaMB=100&name=bobbit&replicaNumber=1&authType=none&proxyPort=13001'
+curl -u Administrator:Administrator -X POST  http://localhost:8091/pools/default/buckets -d 'ramQuotaMB=100&name=bobbyt&replicaNumber=1&authType=none&proxyPort=13001'
 curl -u Administrator:Administrator -X POST  http://localhost:8091/pools/default/buckets -d 'ramQuotaMB=100&name=default&replicaNumber=1&authType=none&proxyPort=13002'
 curl -u Administrator:Administrator -X POST  http://localhost:8091/pools/default/buckets -d 'ramQuotaMB=100&name=tube&replicaNumber=1&authType=none&proxyPort=13003'
 echo ""

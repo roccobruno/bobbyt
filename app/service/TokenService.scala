@@ -1,7 +1,7 @@
 package service
 
 import model.Token
-import repository.BobbitRepository
+import repository.BobbytRepository
 import util.FutureO
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -9,22 +9,22 @@ import scala.concurrent.Future
 
 trait TokenService {
 
-  val bobbitRepository:BobbitRepository
+  val bobbytRepository:BobbytRepository
 
 
   def validateToken(token: String): Future[Option[Token]] = {
     (for {
-      token <- FutureO(bobbitRepository.findValidTokenByValue(token))
-      delete <- FutureO(bobbitRepository.deleteById(token.getId))
-      save <- FutureO(bobbitRepository.saveToken(token))
+      token <- FutureO(bobbytRepository.findValidTokenByValue(token))
+      delete <- FutureO(bobbytRepository.deleteById(token.getId))
+      save <- FutureO(bobbytRepository.saveToken(token))
     } yield token).future
   }
 
   def deleteToken(token : String): Future[Option[Token]] = {
 
     (for {
-      token <- FutureO(bobbitRepository.findValidTokenByValue(token))
-      delete <- FutureO(bobbitRepository.deleteById(token.getId))
+      token <- FutureO(bobbytRepository.findValidTokenByValue(token))
+      delete <- FutureO(bobbytRepository.deleteById(token.getId))
     }yield token).future
 
   }

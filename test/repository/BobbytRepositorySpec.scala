@@ -11,16 +11,12 @@ import util.Testing
 
 import scala.concurrent.duration._
 
-class BobbitRepositorySpec extends Testing {
+class BobbytRepositorySpec extends Testing {
 
-  def repo: BobbitRepository = BobbitRepository
+  def repo: BobbytRepository = BobbytRepository
   def tubeRepo: TubeRepository = TubeRepository
 
 
-  override protected def beforeAll(): Unit = {
-    await(repo.bucket.dropAllIndexes())
-    await(repo.bucket.createPrimaryIndex(deferBuild = false), 10 seconds)
-  }
 
   override protected def afterAll(): Unit = {
     println("shutting down the driver")

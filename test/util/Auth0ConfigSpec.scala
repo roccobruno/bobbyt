@@ -7,17 +7,11 @@ import play.api.{Logger, Play}
 
 import scala.util.{Failure, Success}
 
-class Auth0ConfigSpec extends Testing {
+class Auth0ConfigSpec extends Testing  {
 
-  trait Setup {
+  trait Setup extends TokenUtil {
 
-    val expiry: Long = DateTime.now().plusHours(1).getMillis
 
-    val created = DateTime.now().getMillis
-    val jwt = new DecodedJwt(Seq(Alg(Algorithm.HS256), Typ("JWT")), Seq(Iss("readme"), Sub("test"), Aud("test"), Exp(expiry), Iat(created)))
-    lazy val secret = "secret"
-
-    val token = jwt.encodedAndSigned(secret)
 
 
     def decode = {
@@ -37,8 +31,6 @@ class Auth0ConfigSpec extends Testing {
           token))
         case Failure(e) => Logger.info(s"received not valid token $token. Error: ${e.getMessage}"); Left(s"Error -  ${e.getMessage}")
       }
-
-
     }
 
 
