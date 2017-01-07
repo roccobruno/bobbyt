@@ -14,6 +14,8 @@ libraryDependencies ++= Seq(
   "io.netty" % "netty" % "3.9.2.Final",
   "com.couchbase.client" % "java-client" % "2.3.5",
   "org.scalatest" %% "scalatest" % "2.2.6",
+  "com.couchbase.client" % "java-client" % "2.3.5",
+  "io.reactivex" %% "rxscala" % "0.26.4",
   "io.igl" %% "jwt" % "1.2.0",
   jdbc,
   cache,
