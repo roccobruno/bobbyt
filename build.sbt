@@ -13,7 +13,6 @@ resolvers += DefaultMavenRepository
 libraryDependencies ++= Seq(
   "io.netty" % "netty" % "3.9.2.Final",
   "com.couchbase.client" % "java-client" % "2.3.5",
-  "async-couchbase" %% "async-couchbase" % "0.1-SNAPSHOT",
   "org.scalatest" %% "scalatest" % "2.2.6",
   "io.igl" %% "jwt" % "1.2.0",
   jdbc,
