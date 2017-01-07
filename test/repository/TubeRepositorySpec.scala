@@ -93,7 +93,7 @@ class TubeRepositorySpec extends Testing {
       await(tubeRepository.saveTubeService(Seq(tubeLineNoDisruption("testLineNoDisruption"))))
 
       val loadResult = await(tubeRepository.findAllWithDisruption())
-      loadResult.size shouldBe 5
+      loadResult.size shouldBe 1
       await(tubeRepository.deleteById("testLine"))
       await(tubeRepository.deleteById("testLineNoDisruption"))
 
