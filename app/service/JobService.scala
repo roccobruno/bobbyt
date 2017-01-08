@@ -24,7 +24,7 @@ trait JobService extends TubeService with TubeConnector  {
 
 
 
-
+ //TODO can u merge the 2 update operations?
   def processAlerts(): Future[Seq[String]] = {
     for {
       alerts <- repo.findAllAlertNotSent()
