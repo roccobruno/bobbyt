@@ -10,9 +10,15 @@ import play.api.{Configuration, Play}
 
 object ClusterConfiguration  {
 
+  private var _cluster: Option[CouchbaseCluster] = None
   def cluster  = {
 
-    CouchbaseCluster.create("localhost") //TODO read from config
+    if(_cluster.isEmpty) {
+      _cluster = Some(CouchbaseCluster.create())
+    }
+
+
+    _cluster.getOrElse(throw new IllegalArgumentException("I could not create a cluser"))
 
 
   }

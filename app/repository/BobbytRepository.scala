@@ -68,7 +68,7 @@ trait BobbytRepository {
 
   implicit val validateQuery = false
 
-  def cluster:CouchbaseCluster
+  def cluster: CouchbaseCluster
 
   def bucket: IndexApi
 

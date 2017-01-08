@@ -9,6 +9,9 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 trait JobService extends TubeService with TubeConnector  {
+
+
+
   def deleteSentAlerts() = {
     Future.successful(repo.deleteAll[ID](repo.findAllAlertSentYesterday))
   }

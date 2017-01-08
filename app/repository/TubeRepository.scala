@@ -1,6 +1,6 @@
 package repository
 
-import com.couchbase.client.java.AsyncBucket
+import com.couchbase.client.java.{AsyncBucket, CouchbaseCluster}
 import model.TFLTubeService
 import org.asyncouchbase.bucket.BucketApi
 import org.asyncouchbase.index.IndexApi
@@ -32,6 +32,8 @@ object TubeRepository extends TubeRepository {
 }
 
 trait TubeRepository  {
+
+  def cluster:CouchbaseCluster
 
   implicit val validateQuery = false
 

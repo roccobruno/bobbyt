@@ -22,7 +22,7 @@ import scala.concurrent.duration._
 
 
 class BobbytController @Inject()(system: ActorSystem, wsClient: WSClient, conf: Configuration) extends
-  Controller with JsonParser with Securing with TokenChecker {
+  Controller with JsonParser with TokenChecker {
   val repository: BobbytRepository = BobbytRepository
 
   def getTubRepository = TubeRepository
@@ -96,7 +96,7 @@ class BobbytController @Inject()(system: ActorSystem, wsClient: WSClient, conf: 
     }
   }
 
-  def findAllJobByToken() =  Action.async { implicit request =>
+  def findAllJobByToken() = Action.async { implicit request =>
     WithAuthorization { token =>
       repository.findAllJobByAccountId(token.userId) map {
         case list: Seq[Job] => Ok(Json.toJson(list))
@@ -162,10 +162,12 @@ class BobbytController @Inject()(system: ActorSystem, wsClient: WSClient, conf: 
     }
   }
 
-  def checkUserName(userName: String) = IsAuthenticated { implicit request =>
-    repository.findAccountByUserName(userName) map {
-      case head :: tail => Ok
-      case Nil => NotFound
+  def checkUserName(userName: String) = Action.async { implicit request =>
+    WithAuthorization { token =>
+        repository.findAccountByUserName(userName) map {
+        case head :: tail => Ok
+        case Nil => NotFound
+      }
     }
   }
 

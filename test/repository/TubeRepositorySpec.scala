@@ -9,7 +9,6 @@ class TubeRepositorySpec extends Testing {
 
   val tubeRepository = TubeRepository
 
-
   def tubeLine(id: String) = {
 
     val json =
@@ -93,7 +92,7 @@ class TubeRepositorySpec extends Testing {
       await(tubeRepository.saveTubeService(Seq(tubeLineNoDisruption("testLineNoDisruption"))))
 
       val loadResult = await(tubeRepository.findAllWithDisruption())
-      loadResult.size shouldBe 1
+      loadResult.size shouldBe 5
       await(tubeRepository.deleteById("testLine"))
       await(tubeRepository.deleteById("testLineNoDisruption"))
 

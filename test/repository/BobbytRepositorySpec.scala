@@ -13,15 +13,11 @@ import scala.concurrent.duration._
 
 class BobbytRepositorySpec extends Testing {
 
-  def repo: BobbytRepository = BobbytRepository
-  def tubeRepo: TubeRepository = TubeRepository
+  val repo: BobbytRepository = BobbytRepository
+  val tubeRepo: TubeRepository = TubeRepository
 
 
 
-  override protected def afterAll(): Unit = {
-    println("shutting down the driver")
-    repo.cluster.disconnect()
-  }
 
   "a repository" should {
 
