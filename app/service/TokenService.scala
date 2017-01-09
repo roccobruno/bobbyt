@@ -9,7 +9,7 @@ import scala.concurrent.Future
 
 trait TokenService {
 
-  val bobbytRepository:BobbytRepository
+  val bobbytRepository: BobbytRepository
 
 
   def validateToken(token: String): Future[Option[Token]] = {

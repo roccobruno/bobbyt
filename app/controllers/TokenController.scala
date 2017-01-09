@@ -8,6 +8,8 @@ import play.api.Logger
 import play.api.http.HeaderNames
 import play.api.mvc._
 import play.mvc.BodyParser.AnyContent
+import repository.BobbytRepository
+import scala.concurrent.ExecutionContext.Implicits.global
 
 import scala.concurrent.Future
 
@@ -34,13 +36,30 @@ class TokenController extends Controller {
 
 
 trait TokenChecker {
+  val repository: BobbytRepository
 
   def WithAuthorization(body : (JwtToken) => Future[Result])(implicit request: Request[_]) = {
     val token = request.headers.get(HeaderNames.AUTHORIZATION)
     token.fold(Future.successful[Result](Results.Unauthorized)){
       value =>
         Auth0Config.decodeAndVerifyToken(value.split(" ")(1)) match {
-          case Right(token) => body(token)
+          case Right(tk) => {
+            repository.findValidTokenByValue(tk.token) flatMap  {
+              case Some(savedToken) => body(tk)
+              case None => Logger.warn("Valid token but user has not logged it or record has expired");Future.successful(Results.Unauthorized)
+            }
+          }
+          case Left(message) => Logger.warn(s"Token validation failed . Msg - $message");Future.successful(Results.Unauthorized)
+        }
+    }
+  }
+
+  def WithValidToken(body : (JwtToken) => Future[Result])(implicit request: Request[_]) = {
+    val token = request.headers.get(HeaderNames.AUTHORIZATION)
+    token.fold(Future.successful[Result](Results.Unauthorized)){
+      value =>
+        Auth0Config.decodeAndVerifyToken(value.split(" ")(1)) match {
+          case Right(token) =>  body(token)
           case Left(message) => Logger.warn(s"Token validation failed . Msg - $message");Future.successful(Results.Unauthorized)
         }
     }

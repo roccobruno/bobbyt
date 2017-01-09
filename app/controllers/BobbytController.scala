@@ -200,7 +200,7 @@ class BobbytController @Inject()(system: ActorSystem, wsClient: WSClient, conf: 
   }
 
   def loginWithToken() = Action.async(parse.json) { implicit request =>
-    WithAuthorization {
+    WithValidToken {
       jwtToken =>
         repository.findTokenByUserId(jwtToken.userId) flatMap {
           case Some(token) => Future.successful(Results.Ok)

@@ -38,6 +38,12 @@ class BobbytControllerSpec extends Specification  {
 
     }
 
+    def login = {
+      val resp = route(implicitApp, FakeRequest(POST, "/api/bobbyt/login-token").withHeaders((HeaderNames.AUTHORIZATION,
+        s"Bearer $token")).withJsonBody(Json.parse("{}"))).get
+      status(resp) must equalTo(CREATED)
+    }
+
   }
 
 
@@ -50,6 +56,8 @@ class BobbytControllerSpec extends Specification  {
     "return 201 when posting a bobbyt record" in new Setup {
 
       cleanUpDBAndCreateToken
+
+      login
 
       private val id = UUID.randomUUID().toString
       private val job = Job("jobTitle",alert = Email("name",EmailAddress("from@mss.it"),"name",EmailAddress("from@mss.it")),
@@ -86,6 +94,8 @@ class BobbytControllerSpec extends Specification  {
 
     "return 201 and create account record" in new Setup() {
       cleanUpDBAndCreateToken
+      login
+
       val account = Account(userName = "neo13",email = Some(EmailAddress("test@test.it")), psw = Some("passw"))
       private val toJson = Json.toJson(account)
 
@@ -123,17 +133,7 @@ class BobbytControllerSpec extends Specification  {
 
 
       val ttoken = headers(response.get).get(AUTHORIZATION).get
-      val valRespo = route(implicitApp,FakeRequest(POST, s"/api/bobbyt/account/validate").withHeaders((HeaderNames.AUTHORIZATION,
-        ttoken)))
-      status(valRespo.get) must equalTo(303)
-      val redirectAfterValidation = headers(valRespo.get).get("Location").get
-      redirectAfterValidation must equalTo("/accountactive")
-
-
-
-
-      val getRecUpdated = route(implicitApp,FakeRequest(GET, getResource).withHeaders((HeaderNames.AUTHORIZATION,
-        ttoken))).get
+      val getRecUpdated = route(implicitApp,FakeRequest(GET, getResource).withHeaders((HeaderNames.AUTHORIZATION, ttoken))).get
       status(getRecUpdated) must equalTo(OK)
       val jsonUpdated: Account = contentAsJson(getRecUpdated).as[Account]
 
@@ -182,18 +182,28 @@ class BobbytControllerSpec extends Specification  {
     }
 
 
-    //TODO LOGOUT
-//    "logout a valid account" in new Setup {
-//
-//      val response = route(implicitApp,FakeRequest(POST, "/api/bobbyt/logout").withBody("").withHeaders((HeaderNames.AUTHORIZATION,
-//        s"Bearer $token"))).get
-//      status(response) must equalTo(OK)
-//
-//      val runningJobResp = route(implicitApp,FakeRequest(GET,s"/api/bobbyt/account/load")
-//        .withHeaders((HeaderNames.AUTHORIZATION,s"Bearer $token"))).get
-//      status(runningJobResp) must equalTo(FORBIDDEN)
-//
-//    }
+    "logout a valid account" in new Setup {
+
+      cleanUpDBAndCreateToken
+      val resp = route(implicitApp, FakeRequest(POST, "/api/bobbyt/login-token").withHeaders((HeaderNames.AUTHORIZATION,
+        s"Bearer $token")).withJsonBody(Json.parse("{}"))).get
+      status(resp) must equalTo(CREATED)
+
+      val response = route(implicitApp,FakeRequest(POST, "/api/bobbyt/logout").withBody("").withHeaders((HeaderNames.AUTHORIZATION,
+        s"Bearer $token"))).get
+      status(response) must equalTo(OK)
+
+      val tokens = Await.result(bobbytRepos.findAllToken(),10 seconds)
+      tokens.size must equalTo(0)
+
+      val account = Account(userName = "neo13",email = Some(EmailAddress("test@test.it")), psw = Some("passw"))
+      private val toJson = Json.toJson(account)
+
+      val responseProfile = route(implicitApp,FakeRequest(POST, "/api/bobbyt/profile").withHeaders((HeaderNames.AUTHORIZATION,
+        s"Bearer $token")).withJsonBody(toJson)).get
+      status(responseProfile) must equalTo(UNAUTHORIZED)
+
+    }
 
 
 
