@@ -157,6 +157,15 @@ trait BobbytRepository {
 
   def findAccountById(id: String): Future[Option[Account]] = findById[Account](id)
 
+
+  def findAccountByUserId(userId: String): Future[Option[Account]] = {
+    val query =  SELECT ("*") FROM BUCKET_NAME WHERE ("userId" === userId AND "docType" === "Account")
+    bucket.find[Account](query) map {
+      case head:: tail => Some(head)
+      case Nil => None
+    }
+  }
+
   def findById[T](id: String)(implicit rds: Reads[T]): Future[Option[T]] = bucket.get[T](id)
 
   def findValidTokenByValue(token: String): Future[Option[Token]] = {

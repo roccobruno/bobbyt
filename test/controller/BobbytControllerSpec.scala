@@ -13,7 +13,7 @@ import play.api.libs.json.Json
 import play.api.test.Helpers._
 import play.api.test.{FakeRequest, WithApplication}
 import repository.BobbytRepository
-import util.TokenUtil
+import util.{Testing, TokenUtil}
 
 import scala.concurrent.Await
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -25,7 +25,7 @@ class BobbytControllerSpec extends Specification  {
 
   lazy  val appEnableSec = GuiceApplicationBuilder().loadConfig(Configuration("security-enabled" -> true)).build()
 
-  trait Setup extends WithApplication with TokenUtil {
+  trait Setup extends WithApplication with TokenUtil  {
     val bobbytRepos = BobbytRepository
 
     def cleanUpDBAndCreateToken = {
@@ -107,7 +107,7 @@ class BobbytControllerSpec extends Specification  {
 
     }
 
-    "create and validate account" in new Setup() {
+    "create and validate account " in new Setup() {
 
       cleanUpDBAndCreateToken
 
@@ -144,6 +144,40 @@ class BobbytControllerSpec extends Specification  {
         ttoken))).get
       status(getRecByToken) must equalTo(OK)
 
+
+    }
+
+    "login via token  and submit profile" in new Setup {
+
+      cleanUpDBAndCreateToken
+      val resp = route(implicitApp, FakeRequest(POST, "/api/bobbyt/login-token").withHeaders((HeaderNames.AUTHORIZATION,
+        s"Bearer $token")).withJsonBody(Json.parse("{}"))).get
+      status(resp) must equalTo(CREATED)
+
+      val tokens = Await.result(bobbytRepos.findAllToken(),10 seconds)
+
+      tokens.size must equalTo(1)
+      tokens(0).token must equalTo(token)
+
+      val account = Account(userName = "neo13",email = Some(EmailAddress("test@test.it")), psw = Some("passw"))
+      private val toJson = Json.toJson(account)
+
+      val responseProfile = route(implicitApp,FakeRequest(POST, "/api/bobbyt/profile").withHeaders((HeaderNames.AUTHORIZATION,
+        s"Bearer $token")).withJsonBody(toJson)).get
+      status(responseProfile) must equalTo(CREATED)
+
+      val getResource = headers(responseProfile).get("Location").get
+      getResource must be startWith("/api/bobbyt/account")
+
+      val getRec = route(implicitApp,FakeRequest(GET, getResource).withHeaders((HeaderNames.AUTHORIZATION,
+        s"Bearer $token"))).get
+      status(getRec) must equalTo(OK)
+      val json: Account = contentAsJson(getRec).as[Account]
+
+      json.userName must equalTo(account.userName)
+      json.firstName must equalTo(account.firstName)
+      json.lastName must equalTo(account.lastName)
+      json.email must equalTo(account.email)
 
     }
 

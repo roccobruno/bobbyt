@@ -17,14 +17,14 @@ GET    /api/bobbyt/job/all                  controllers.BobbytController.findAll
 #Account
 GET     /api/bobbyt/account/load                 controllers.BobbytController.findAccountByToken
 POST    /api/bobbyt/account                      controllers.BobbytController.account
+POST    /api/bobbyt/profile                      controllers.BobbytController.submitProfile
 GET     /api/bobbyt/account/:id                  controllers.BobbytController.findAccount(id:String)
 GET     /api/bobbyt/account/username/:username   controllers.BobbytController.checkUserName(username: String)
 POST    /api/bobbyt/account/validate             controllers.BobbytController.validateAccount
+POST    /api/bobbyt/login-token                  controllers.BobbytController.loginWithToken
 POST    /api/bobbyt/login                        controllers.BobbytController.login
 POST    /api/bobbyt/logout                       controllers.BobbytController.logout
 GET     /api/bobbyt/token/validate/:token        controllers.BobbytController.validateToken(token: String)
 
 GET     /api/bobbyt/callback                     controllers.TokenController.callback
 
-
-DELETE   /api/bobbyt/delete-all                controllers.BobbytController.deleteAll

@@ -7,7 +7,7 @@ import _root_.util.FutureO
 import akka.actor.ActorSystem
 import jobs._
 import model.{Job, _}
-import play.api.Configuration
+import play.api.{Configuration, Logger}
 import play.api.http.HeaderNames
 import play.api.libs.json._
 import play.api.libs.ws.WSClient
@@ -106,32 +106,14 @@ class BobbytController @Inject()(system: ActorSystem, wsClient: WSClient, conf: 
 
   def findAccountByToken() = Action.async { implicit authContext =>
     WithAuthorization { token =>
-      repository.findAccountById(token.userId) map {
+      repository.findAccountByUserId(token.userId) map {
         case Some(account) => Ok(Json.toJson(account))
         case _ => NotFound
       }
     }
   }
 
-  def deleteAll() = Action.async {
-    implicit request =>
-
-      for {
-        del <- repository.deleteAllAlerts()
-        del <- repository.deleteAllJobs()
-        del <- repository.deleteAllAccount()
-      } yield Ok
-  }
-
   def delete(id: String) = Action.async {
-    implicit request =>
-      repository.deleteById(id) map {
-        case Some(id) => Ok
-        case _ => InternalServerError
-      }
-  }
-
-  def deleteRunningJob(id: String) = Action.async {
     implicit request =>
       repository.deleteById(id) map {
         case Some(id) => Ok
@@ -196,11 +178,11 @@ class BobbytController @Inject()(system: ActorSystem, wsClient: WSClient, conf: 
   def account() = Action.async(parse.json) { implicit request =>
     val accId = UUID.randomUUID().toString
     withJsonBody[Account] { account =>
-      val accountToSave = account.copy(id = Some(accId))
+      val accountToSave = account.copy(id = Some(accId), userId = Some(accId))
       for {
         account <- repository.saveAccount(accountToSave)
         token <- generateToken(accountToSave)
-        _ <- repository.saveToken(Token(token = token.value, accountId = Some(accId), userId = ""))
+        _ <- repository.saveToken(Token(token = token.value, accountId = Some(accId), userId = accId))
       } yield Created.withHeaders(LOCATION -> ("/api/bobbyt/account/" + accId), HeaderNames.AUTHORIZATION -> s"Bearer ${token.value}")
     }
   }
@@ -209,7 +191,7 @@ class BobbytController @Inject()(system: ActorSystem, wsClient: WSClient, conf: 
     val accId = UUID.randomUUID().toString
     WithAuthorization { jwtToken =>
       withJsonBody[Account] { account =>
-        val accountToSave = account.copy(id = Some(accId))
+        val accountToSave = account.copy(id = Some(accId), userId = Some(jwtToken.userId))
         for {
           account <- repository.saveAccount(accountToSave)
         } yield Created.withHeaders(LOCATION -> ("/api/bobbyt/account/" + accId), HeaderNames.AUTHORIZATION -> jwtToken.token)

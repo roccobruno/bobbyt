@@ -141,7 +141,8 @@ case class Account(private val id: Option[String] = Some(UUID.randomUUID().toStr
                    email: Option[EmailAddress] = None,//it might be none if user uses FB to login
                    docType: String = "Account",
                    psw: Option[String], //it might be none if user uses FB to login
-                   active:Boolean = true)
+                   active:Boolean = true,
+                   userId: Option[String] = None)
   extends InternalId {
   def getId = this.id.getOrElse(throw new IllegalStateException("found an Account without an ID!!!"))
 }
