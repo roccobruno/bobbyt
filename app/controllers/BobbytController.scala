@@ -144,6 +144,18 @@ class BobbytController @Inject()(system: ActorSystem, wsClient: WSClient, conf: 
     }
   }
 
+  def updateJob() = Action.async(parse.json) { implicit request =>
+    WithAuthorization { token =>
+      withJsonBody[Job] { job =>
+        val jobToSave = job.copy(accountId = token.userId)
+        for {
+          Some(id) <- repository.saveJob(jobToSave)
+        } yield Ok.withHeaders("Location" -> ("/api/bobbyt/" + id))
+
+      }
+    }
+  }
+
   def checkUserName(userName: String) = Action.async { implicit request =>
     WithAuthorization { token =>
         repository.findAccountByUserName(userName) map {

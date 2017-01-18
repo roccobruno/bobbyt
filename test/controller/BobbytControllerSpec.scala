@@ -90,6 +90,55 @@ class BobbytControllerSpec extends Specification  {
 
     }
 
+    "return 200 when updating a bobbyt job" in new Setup {
+
+      cleanUpDBAndCreateToken
+
+      login
+
+      private val id = UUID.randomUUID().toString
+      private val journey: Journey = Journey(true, MeansOfTransportation(Seq(TubeLine("central", "central")), Nil), TimeOfDay(8, 30), 40)
+      private val job = Job("jobTitle", alert = Email("name",EmailAddress("from@mss.it"),"name",EmailAddress("from@mss.it")),
+        journey= journey,accountId = "accountId")
+
+      //create a job
+      val response = route(implicitApp, FakeRequest(POST, "/api/bobbyt").withBody(Json.toJson(job)).withHeaders((HeaderNames.AUTHORIZATION,
+        s"Bearer $token")))
+      status(response.get) must equalTo(CREATED)
+
+      val getResource = headers(response.get).get("Location").get
+      getResource must be startWith "/api/bobbyt"
+      val getRec = route(implicitApp, FakeRequest(GET, getResource).withHeaders((HeaderNames.AUTHORIZATION,
+        s"Bearer $token"))).get
+
+      status(getRec) must equalTo(OK)
+      val json: Job = contentAsJson(getRec).as[Job]
+      json.title must equalTo("jobTitle")
+      json.alert.from must equalTo(EmailAddress("from@mss.it"))
+      json.alert.to must equalTo(EmailAddress("from@mss.it"))
+      json.journey.meansOfTransportation.tubeLines.size must equalTo(1)
+
+
+
+      //updating the same job
+      val updatedJob = json.copy(title = "Updated Job", journey = journey.copy(meansOfTransportation =
+        MeansOfTransportation(Seq(TubeLine("central", "central"), TubeLine("piccadilly", "piccadilly")), Nil)))
+      val responseForUpdate = route(implicitApp, FakeRequest(PUT, "/api/bobbyt").withBody(Json.toJson(updatedJob)).withHeaders((HeaderNames.AUTHORIZATION,
+        s"Bearer $token")))
+      status(responseForUpdate.get) must equalTo(OK)
+
+      val getRecUpdated = route(implicitApp, FakeRequest(GET, getResource).withHeaders((HeaderNames.AUTHORIZATION,
+        s"Bearer $token"))).get
+
+      status(getRecUpdated) must equalTo(OK)
+      val updatedJobGet: Job = contentAsJson(getRecUpdated).as[Job]
+      updatedJobGet.title must equalTo("Updated Job")
+      updatedJobGet.journey.meansOfTransportation.tubeLines.size must equalTo(2)
+
+
+
+    }
+
 
 
     "return 201 and create account record" in new Setup() {

@@ -11,6 +11,7 @@ GET     /assets/*file               controllers.Assets.versioned(path="/public",
 GET    /api/bobbyt/fetch                    controllers.BobbytController.fetchTubeLine
 GET    /api/bobbyt/:id                      controllers.BobbytController.find(id:String)
 POST   /api/bobbyt                          controllers.BobbytController.save
+PUT    /api/bobbyt                          controllers.BobbytController.updateJob
 DELETE /api/bobbyt/:id                      controllers.BobbytController.delete(id:String)
 GET    /api/bobbyt/job/all                  controllers.BobbytController.findAllJobByToken
 
