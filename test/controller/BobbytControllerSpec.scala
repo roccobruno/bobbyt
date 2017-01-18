@@ -1,6 +1,7 @@
 package controller
 
 import java.util.UUID
+import javax.inject.Inject
 
 import model._
 import org.junit.runner.RunWith
@@ -12,7 +13,7 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.Json
 import play.api.test.Helpers._
 import play.api.test.{FakeRequest, WithApplication}
-import repository.BobbytRepository
+import repository.{BobbytRepository, ClusterConfiguration}
 import util.{Testing, TokenUtil}
 
 import scala.concurrent.Await
@@ -36,7 +37,7 @@ class BobbytControllerSpec extends Specification  {
     val toJson = Json.toJson(job)
 
 
-    val bobbytRepos = BobbytRepository
+    val bobbytRepos = new BobbytRepository(new ClusterConfiguration(app.configuration))
 
     def cleanUpDBAndCreateToken = {
       Await.result( for {

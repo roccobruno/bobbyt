@@ -1,5 +1,7 @@
 package repository
 
+import javax.inject.{Inject, Singleton}
+
 import com.couchbase.client.java.{AsyncBucket, CouchbaseCluster}
 import model.TFLTubeService
 import org.asyncouchbase.bucket.BucketApi
@@ -8,17 +10,16 @@ import org.asyncouchbase.model.OpsResult
 import org.asyncouchbase.query.ExpressionImplicits._
 import org.asyncouchbase.query.{ANY, SELECT}
 import org.joda.time.DateTime
-import play.api.Logger
+import play.api.{Configuration, Logger}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
+@Singleton
+class TubeRepository @Inject()(clusterConfiguration: ClusterConfiguration)   {
 
-object TubeRepository extends TubeRepository {
+  val cluster = clusterConfiguration.cluster
 
-
-
-  val cluster = ClusterConfiguration.cluster
   val bucket = new IndexApi {
     override def asyncBucket: AsyncBucket = cluster.openBucket("tube").async()
   }
@@ -29,15 +30,8 @@ object TubeRepository extends TubeRepository {
     case ed: Throwable => Logger.error(s"PRIMARY INDEX NOT CREATED error= ${ed.getMessage}")
   }
 
-}
-
-trait TubeRepository  {
-
-  def cluster:CouchbaseCluster
 
   implicit val validateQuery = false
-
-  def bucket: BucketApi
 
   def findById(id: String) = {
     bucket.get[TFLTubeService](id)

@@ -1,6 +1,6 @@
 package repository
 
-import java.util.concurrent.TimeUnit
+import javax.inject.{Inject, Singleton}
 
 import com.couchbase.client.java.{AsyncBucket, CouchbaseCluster}
 import model.{Job, _}
@@ -9,12 +9,11 @@ import org.asyncouchbase.model.OpsResult
 import org.asyncouchbase.query.ExpressionImplicits._
 import org.asyncouchbase.query.{ANY, SELECT}
 import org.joda.time.DateTime
-import play.api.Logger
+import play.api.{Configuration, Logger}
 import play.api.libs.json._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import scala.concurrent.duration.Duration
 import scala.reflect.runtime.universe._
 
 case class ID(id: String) extends InternalId {
@@ -24,10 +23,10 @@ object ID {
   implicit val format = Json.format[ID]
 }
 
-object BobbytRepository extends BobbytRepository {
+@Singleton
+class BobbytRepository @Inject()(clusterConfiguration: ClusterConfiguration) {
 
-
-  val cluster = ClusterConfiguration.cluster
+  val cluster = clusterConfiguration.cluster
   val bucket = new IndexApi {
     override def asyncBucket: AsyncBucket = cluster.openBucket("bobbyt").async()
   }
@@ -48,12 +47,6 @@ object BobbytRepository extends BobbytRepository {
   }
 
 
-
-
-}
-
-
-trait BobbytRepository {
   
   val BUCKET_NAME = "bobbyt"
 
@@ -68,9 +61,6 @@ trait BobbytRepository {
 
   implicit val validateQuery = false
 
-  def cluster: CouchbaseCluster
-
-  def bucket: IndexApi
 
   def deleteAllJobs() = {
     deleteAll(findAllJob)

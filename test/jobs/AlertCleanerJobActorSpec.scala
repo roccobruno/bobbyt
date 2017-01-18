@@ -2,6 +2,7 @@ package jobs
 
 import java.util.UUID
 import java.util.concurrent.TimeUnit
+import javax.inject.Inject
 
 import akka.actor.ActorSystem
 import akka.testkit.{TestActorRef, TestKit}
@@ -9,7 +10,7 @@ import model.{Email, EmailAddress, EmailAlert}
 import org.joda.time.DateTime
 import play.api.Configuration
 import play.api.libs.ws.WSClient
-import repository.{BobbytRepository, TubeRepository}
+import repository.{BobbytRepository, ClusterConfiguration, TubeRepository}
 import service.{JobService, MailGunService}
 import util.Testing
 
@@ -17,14 +18,16 @@ import scala.concurrent.duration._
 import scala.concurrent.Await
 import akka.pattern.ask
 import akka.util.Timeout
+import com.typesafe.config.ConfigFactory
+import org.junit.runner.RunWith
 import org.mockito.Mockito
+import org.specs2.runner.JUnitRunner
+import play.api.test.WithApplication
 
 
+@RunWith(classOf[JUnitRunner])
+class AlertCleanerJobActorSpec  extends TestKit(ActorSystem("AlertCleanerJobActorSpec")) with Testing  {
 
-class AlertCleanerJobActorSpec extends TestKit(ActorSystem("AlertCleanerJobActorSpec")) with Testing {
-
-
-  val bobbytRepository = BobbytRepository
 
   override protected def beforeAll(): Unit = {
    await(bobbytRepository.deleteAllAlerts())

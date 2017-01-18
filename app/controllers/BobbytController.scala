@@ -21,11 +21,11 @@ import scala.concurrent.Future
 import scala.concurrent.duration._
 
 
-class BobbytController @Inject()(system: ActorSystem, wsClient: WSClient, conf: Configuration) extends
+class BobbytController @Inject()(system: ActorSystem, wsClient: WSClient, conf: Configuration, bobbytRepository: BobbytRepository, tubeRepository: TubeRepository) extends
   Controller with JsonParser with TokenChecker {
-  val repository: BobbytRepository = BobbytRepository
+  val repository: BobbytRepository = bobbytRepository
 
-  def getTubRepository = TubeRepository
+  def getTubRepository = tubeRepository
 
   object TokenService extends TokenService {
     override val bobbytRepository: BobbytRepository = repository

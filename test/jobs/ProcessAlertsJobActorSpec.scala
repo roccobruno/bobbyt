@@ -2,6 +2,7 @@ package jobs
 
 import java.util.UUID
 import java.util.concurrent.TimeUnit
+import javax.inject.Inject
 
 import akka.actor.ActorSystem
 import akka.testkit.{ImplicitSender, TestActorRef, TestKit}
@@ -15,16 +16,17 @@ import repository.{BobbytRepository, TubeRepository}
 import service.{JobService, MailGunService}
 import util.Testing
 import akka.pattern.ask
+import org.junit.runner.RunWith
+import org.specs2.runner.JUnitRunner
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.Future
 import scala.concurrent.duration.Duration
 
+@RunWith(classOf[JUnitRunner])
+class ProcessAlertsJobActorSpec  extends TestKit(ActorSystem("ProcessAlertsJobActorSpec")) with Testing with ImplicitSender {
 
-class ProcessAlertsJobActorSpec extends TestKit(ActorSystem("ProcessAlertsJobActorSpec")) with Testing with ImplicitSender {
 
-
-  val bobbytRepository = BobbytRepository
 
   val emailsBuffer = ListBuffer.empty[EmailToSent]
 

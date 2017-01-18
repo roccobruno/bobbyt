@@ -1,15 +1,14 @@
 package repository
 
+import javax.inject.Inject
+
 import model.TFLTubeService
+import org.junit.runner.RunWith
+import org.specs2.runner.JUnitRunner
 import play.api.libs.json.Json
 import util.{Testing, TubeLineUtil}
-
+@RunWith(classOf[JUnitRunner])
 class TubeRepositorySpec extends Testing with TubeLineUtil {
-
-
-  val tubeRepository = TubeRepository
-
-
 
 
   "a repository" should {

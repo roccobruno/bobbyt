@@ -2,6 +2,7 @@ package jobs
 
 import java.util.UUID
 import java.util.concurrent.TimeUnit
+import javax.inject.Inject
 
 import akka.actor.ActorSystem
 import akka.testkit.{ImplicitSender, TestActorRef, TestKit}
@@ -9,7 +10,9 @@ import akka.util.Timeout
 import model._
 import org.joda.time.DateTime
 import org.joda.time.DateTime._
+import org.junit.runner.RunWith
 import org.mockito.Mockito
+import org.specs2.runner.JUnitRunner
 import play.api.Configuration
 import play.api.libs.json.Json
 import play.api.libs.ws.WSClient
@@ -21,13 +24,11 @@ import scala.collection.mutable.ListBuffer
 import scala.concurrent.Future
 import scala.concurrent.duration.Duration
 
-
-class TubeServiceCheckerJobActorSpec extends TestKit(ActorSystem("TubeServiceCheckerJobActorSpec"))
+@RunWith(classOf[JUnitRunner])
+class TubeServiceCheckerJobActorSpec  extends TestKit(ActorSystem("TubeServiceCheckerJobActorSpec"))
   with Testing with ImplicitSender with TubeLineUtil {
 
-
-  val tRepo = TubeRepository
-  val bobbytRepository = BobbytRepository
+  val ttubeRepo = tubeRepository
 
   val emailsBuffer = ListBuffer.empty[EmailToSent]
 
@@ -81,7 +82,6 @@ class TubeServiceCheckerJobActorSpec extends TestKit(ActorSystem("TubeServiceChe
 
 
     def saveJob(jobId: String, plusHours: Int = 0): Option[String] = {
-
       val hourOfTheDay: Int = DateTime.now().plusHours(plusHours).hourOfDay().get()
       val minutesOfTheHour: Int = DateTime.now().plusHours(plusHours).minuteOfHour().get()
       val job = Json.fromJson[Job](Json.parse(jobJson(hourOfTheDay, minutesOfTheHour, jobId))).get
@@ -106,7 +106,7 @@ class TubeServiceCheckerJobActorSpec extends TestKit(ActorSystem("TubeServiceChe
         override val mailGunService: MailGunService = Mockito.mock(classOf[MailGunService])
         override val ws: WSClient = Mockito.mock(classOf[WSClient])
         override val configuration: Configuration = Mockito.mock(classOf[Configuration])
-        override val tubeRepository: TubeRepository = tRepo
+        override val tubeRepository: TubeRepository = ttubeRepo
       }
 
       val actor = TestActorRef(new TubeServiceCheckerActor(jbService))
@@ -117,21 +117,23 @@ class TubeServiceCheckerJobActorSpec extends TestKit(ActorSystem("TubeServiceChe
       val jobId3: String = UUID.randomUUID().toString
 
 
-      await(tRepo.saveTubeService(Seq(tubeLine("testLine"))))
-      await(tRepo.saveTubeService(Seq(tubeLineNoDisruption("testLineNoDisruption"))))
+      await(tubeRepository.saveTubeService(Seq(tubeLine("testLine"))))
+      await(tubeRepository.saveTubeService(Seq(tubeLineNoDisruption("testLineNoDisruption"))))
+
 
 
       saveJob(jobId)
       saveJob(jobId2)
-      saveJob(jobId3, plusHours = 5) //this job should not be found (cos it runs in 5 hours)
+      saveJob(jobId3, plusHours = 6) //this job should not be found (cos it runs in 5 hours)
+
 
       val res = actor ! Run("test")
 
       awaitAssert(checkAlerts, Duration(10, TimeUnit.SECONDS))
 
 
-      await(tRepo.deleteById("testLine"))
-      await(tRepo.deleteById("testLineNoDisruption"))
+      await(tubeRepository.deleteById("testLine"))
+      await(tubeRepository.deleteById("testLineNoDisruption"))
 
 
 

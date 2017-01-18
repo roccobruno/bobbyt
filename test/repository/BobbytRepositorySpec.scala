@@ -1,33 +1,30 @@
 package repository
 
 import java.util.UUID
+import javax.inject.Inject
 
 import model._
 import org.joda.time.DateTime
 import org.joda.time.DateTime.now
+import org.junit.runner.RunWith
+import org.specs2.runner.JUnitRunner
 import play.api.libs.json.Json
 import play.api.test.WithApplication
 import util.Testing
 
 import scala.concurrent.duration._
-
-class BobbytRepositorySpec extends Testing {
-
-  val repo: BobbytRepository = BobbytRepository
-  val tubeRepo: TubeRepository = TubeRepository
-
-
-
+@RunWith(classOf[JUnitRunner])
+class BobbytRepositorySpec  extends Testing {
 
   "a repository" should {
 
     "return valid token" in new WithApplication {
 
-      await(repo.deleteAllToken())
+      await(bobbytRepository.deleteAllToken())
       private val token = Token(token = "token", accountId = Some("accountId"), userId = "userId")
-      await(repo.saveToken(token))
+      await(bobbytRepository.saveToken(token))
 
-      val res = await(repo.findValidTokenByValue("token"), 10 second)
+      val res = await(bobbytRepository.findValidTokenByValue("token"), 10 second)
       res.size should be(1)
       res contains token should be(true)
     }
@@ -36,17 +33,17 @@ class BobbytRepositorySpec extends Testing {
 
       val email: Email = Email("test", EmailAddress("test@test.it"), "test", EmailAddress("test@test.it"))
       val jobID: String = UUID.randomUUID().toString
-      val res = await(repo.saveAlertIfAbsent(EmailAlert(email = email, sentAt = None, persisted = DateTime.now, jobId = jobID, sent = true)))
+      val res = await(bobbytRepository.saveAlertIfAbsent(EmailAlert(email = email, sentAt = None, persisted = DateTime.now, jobId = jobID, sent = true)))
       res.isDefined shouldBe true
 
-      val res2 = await(repo.saveAlertIfAbsent(EmailAlert(email = email, sentAt = None, persisted = DateTime.now, jobId = jobID)))
+      val res2 = await(bobbytRepository.saveAlertIfAbsent(EmailAlert(email = email, sentAt = None, persisted = DateTime.now, jobId = jobID)))
       res2.isDefined shouldBe false
 
     }
 
     "return jobs affected by tube delays" in new WithApplication() {
 
-      await(repo.deleteAllJobs())
+      await(bobbytRepository.deleteAllJobs())
 
       def jobJson (hourOfTheDay: Int, minOfTheHour: Int) = s"""{
                   |  "accountId": "accountId",
@@ -89,10 +86,10 @@ class BobbytRepositorySpec extends Testing {
       private val minutesOfTheHour: Int = now().minuteOfHour().get()
       val job = Json.fromJson[Job](Json.parse(jobJson(hourOfTheDay, minutesOfTheHour))).get
 
-        await(repo.save(job))
+        await(bobbytRepository.save(job))
 
 
-      val result = await(repo.findJobsByTubeLineAndRunningTime(Seq(TubeLine("piccadilly","piccadilly")), DateTime.now().withHourOfDay(hourOfTheDay).withMinuteOfHour(minutesOfTheHour)))
+      val result = await(bobbytRepository.findJobsByTubeLineAndRunningTime(Seq(TubeLine("piccadilly","piccadilly")), DateTime.now().withHourOfDay(hourOfTheDay).withMinuteOfHour(minutesOfTheHour)))
 
       result.size shouldBe 1
       result(0).getId shouldBe "06e0fb68-adb6-4c85-a8cd-923cdd00beaf"
@@ -104,16 +101,16 @@ class BobbytRepositorySpec extends Testing {
 
       val email: Email = Email("test", EmailAddress("test@test.it"), "test", EmailAddress("test@test.it"))
       val jobID: String = UUID.randomUUID().toString
-      val res = await(repo.saveAlert(EmailAlert(email = email, sentAt = None, persisted = DateTime.now, jobId = jobID)))
+      val res = await(bobbytRepository.saveAlert(EmailAlert(email = email, sentAt = None, persisted = DateTime.now, jobId = jobID)))
       res.isDefined shouldBe true
 
-      val notUpdatedAlert = await(repo.findAlertByJobIdAndSentValue(jobID))
+      val notUpdatedAlert = await(bobbytRepository.findAlertByJobIdAndSentValue(jobID))
       notUpdatedAlert.isDefined shouldBe true
       notUpdatedAlert.get.sent shouldBe false
 
-      await(repo.markAlertAsSent(res.get))
+      await(bobbytRepository.markAlertAsSent(res.get))
 
-      val updateAlert = await(repo.findAlertByJobIdAndSentValue(jobID, sent = true))
+      val updateAlert = await(bobbytRepository.findAlertByJobIdAndSentValue(jobID, sent = true))
       updateAlert.isDefined shouldBe true
       updateAlert.get.sent shouldBe true
 
@@ -123,16 +120,16 @@ class BobbytRepositorySpec extends Testing {
 
       val email: Email = Email("test", EmailAddress("test@test.it"), "test", EmailAddress("test@test.it"))
       val jobID: String = UUID.randomUUID().toString
-      val res = await(repo.saveAlert(EmailAlert(email = email, sentAt = None, persisted = DateTime.now, jobId = jobID)))
+      val res = await(bobbytRepository.saveAlert(EmailAlert(email = email, sentAt = None, persisted = DateTime.now, jobId = jobID)))
       res.isDefined shouldBe true
 
-      val notUpdatedAlert = await(repo.findAlertByJobIdAndSentValue(jobID))
+      val notUpdatedAlert = await(bobbytRepository.findAlertByJobIdAndSentValue(jobID))
       notUpdatedAlert.isDefined shouldBe true
       notUpdatedAlert.get.sentAt.isDefined shouldBe false
 
-      await(repo.markAlertAsSentAt(res.get))
+      await(bobbytRepository.markAlertAsSentAt(res.get))
 
-      val updateAlert = await(repo.findAlertByJobIdAndSentValue(jobID))
+      val updateAlert = await(bobbytRepository.findAlertByJobIdAndSentValue(jobID))
       updateAlert.isDefined shouldBe true
       updateAlert.get.sentAt.isDefined shouldBe true
 
@@ -142,21 +139,21 @@ class BobbytRepositorySpec extends Testing {
 
       val email: Email = Email("test", EmailAddress("test@test.it"), "test", EmailAddress("test@test.it"))
       val jobID: String = UUID.randomUUID().toString
-      val res = await(repo.saveAlert(EmailAlert(email = email, sentAt = Some(DateTime.now().minusDays(2)), persisted = DateTime.now, jobId = jobID, sent = true)))
-      val res2 = await(repo.saveAlert(EmailAlert(email = email, sentAt = Some(DateTime.now()), persisted = DateTime.now, jobId = jobID, sent = true)))
-      val res1 = await(repo.saveAlert(EmailAlert(email = email, sentAt = Some(DateTime.now().minusDays(2)), persisted = DateTime.now, jobId = jobID, sent = false)))
+      val res = await(bobbytRepository.saveAlert(EmailAlert(email = email, sentAt = Some(DateTime.now().minusDays(2)), persisted = DateTime.now, jobId = jobID, sent = true)))
+      val res2 = await(bobbytRepository.saveAlert(EmailAlert(email = email, sentAt = Some(DateTime.now()), persisted = DateTime.now, jobId = jobID, sent = true)))
+      val res1 = await(bobbytRepository.saveAlert(EmailAlert(email = email, sentAt = Some(DateTime.now().minusDays(2)), persisted = DateTime.now, jobId = jobID, sent = false)))
       res.isDefined shouldBe true
       res2.isDefined shouldBe true
       res1.isDefined shouldBe true
 
-      val results = await(repo.findAllAlertSentYesterday())
+      val results = await(bobbytRepository.findAllAlertSentYesterday())
       results.size shouldBe 1
       results(0) == res.get
 
 
-      await(repo.deleteById(res.get))
-      await(repo.deleteById(res2.get))
-      await(repo.deleteById(res1.get))
+      await(bobbytRepository.deleteById(res.get))
+      await(bobbytRepository.deleteById(res2.get))
+      await(bobbytRepository.deleteById(res1.get))
 
     }
 
