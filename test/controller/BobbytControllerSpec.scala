@@ -139,6 +139,45 @@ class BobbytControllerSpec extends Specification  {
 
     }
 
+    "return 200 when deleting a bobbyt job" in new Setup {
+
+      cleanUpDBAndCreateToken
+
+      login
+
+      private val id = UUID.randomUUID().toString
+      private val journey: Journey = Journey(true, MeansOfTransportation(Seq(TubeLine("central", "central")), Nil), TimeOfDay(8, 30), 40)
+      private val job = Job("jobTitle", alert = Email("name",EmailAddress("from@mss.it"),"name",EmailAddress("from@mss.it")),
+        journey= journey,accountId = "accountId")
+
+      //create a job
+      val response = route(implicitApp, FakeRequest(POST, "/api/bobbyt").withBody(Json.toJson(job)).withHeaders((HeaderNames.AUTHORIZATION,
+        s"Bearer $token")))
+      status(response.get) must equalTo(CREATED)
+
+      val getResource = headers(response.get).get("Location").get
+      getResource must be startWith "/api/bobbyt"
+      val getRec = route(implicitApp, FakeRequest(GET, getResource).withHeaders((HeaderNames.AUTHORIZATION,
+        s"Bearer $token"))).get
+
+      status(getRec) must equalTo(OK)
+
+
+      //deleting the job
+
+      val deleteResp  = route(implicitApp, FakeRequest(DELETE, getResource).withHeaders((HeaderNames.AUTHORIZATION,
+        s"Bearer $token"))).get
+      status(deleteResp) must equalTo(OK)
+
+      // the GET should return 404 now
+      val getRecAfterDEeting = route(implicitApp, FakeRequest(GET, getResource).withHeaders((HeaderNames.AUTHORIZATION,
+        s"Bearer $token"))).get
+
+      status(getRecAfterDEeting) must equalTo(NOT_FOUND)
+
+    }
+
+
 
 
     "return 201 and create account record" in new Setup() {
