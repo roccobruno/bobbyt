@@ -23,9 +23,19 @@ import scala.concurrent.duration._
 @RunWith(classOf[JUnitRunner])
 class BobbytControllerSpec extends Specification  {
 
+  case class TestJob(job: Job, location: String)
+
   lazy  val appEnableSec = GuiceApplicationBuilder().loadConfig(Configuration("security-enabled" -> true)).build()
 
   trait Setup extends WithApplication with TokenUtil  {
+
+    val id = UUID.randomUUID().toString
+    val journey: Journey = Journey(true, MeansOfTransportation(Seq(TubeLine("central", "central")), Nil), TimeOfDay(8, 30), 40)
+    val job = Job("jobTitle",alert = Email("name",EmailAddress("from@mss.it"),"name",EmailAddress("from@mss.it")),
+      journey= Journey(true,MeansOfTransportation(Seq(TubeLine("central","central")),Nil),TimeOfDay(8,30),40),accountId = "accountId")
+    val toJson = Json.toJson(job)
+
+
     val bobbytRepos = BobbytRepository
 
     def cleanUpDBAndCreateToken = {
@@ -36,6 +46,24 @@ class BobbytControllerSpec extends Specification  {
         del <-bobbytRepos.deleteAllJobs()
       } yield del, 10 seconds)
 
+    }
+
+    def postANewJob = {
+      val response = route(implicitApp, FakeRequest(POST, "/api/bobbyt").withBody(toJson).withHeaders((HeaderNames.AUTHORIZATION,
+        s"Bearer $token")))
+      status(response.get) must equalTo(CREATED)
+      val location = headers(response.get).get("Location").get
+
+      location must be startWith "/api/bobbyt"
+
+      val getRec = route(implicitApp, FakeRequest(GET, location).withHeaders((HeaderNames.AUTHORIZATION,
+        s"Bearer $token"))).get
+
+      status(getRec) must equalTo(OK)
+      val json: Job = contentAsJson(getRec).as[Job]
+      json.alert.from must equalTo(EmailAddress("from@mss.it"))
+      json.alert.to must equalTo(EmailAddress("from@mss.it"))
+      TestJob(json, location)
     }
 
     def login = {
@@ -59,25 +87,7 @@ class BobbytControllerSpec extends Specification  {
 
       login
 
-      private val id = UUID.randomUUID().toString
-      private val job = Job("jobTitle",alert = Email("name",EmailAddress("from@mss.it"),"name",EmailAddress("from@mss.it")),
-        journey= Journey(true,MeansOfTransportation(Seq(TubeLine("central","central")),Nil),TimeOfDay(8,30),40),accountId = "accountId")
-      private val toJson = Json.toJson(job)
-
-      val response = route(implicitApp, FakeRequest(POST, "/api/bobbyt").withBody(toJson).withHeaders((HeaderNames.AUTHORIZATION,
-        s"Bearer $token")))
-      status(response.get) must equalTo(CREATED)
-
-      val getResource = headers(response.get).get("Location").get
-      getResource must be startWith "/api/bobbyt"
-
-      val getRec = route(implicitApp, FakeRequest(GET, getResource).withHeaders((HeaderNames.AUTHORIZATION,
-        s"Bearer $token"))).get
-
-      status(getRec) must equalTo(OK)
-      val json: Job = contentAsJson(getRec).as[Job]
-      json.alert.from must equalTo(EmailAddress("from@mss.it"))
-      json.alert.to must equalTo(EmailAddress("from@mss.it"))
+      postANewJob
 
       //look up job by token
       val allJob = route(implicitApp,FakeRequest(GET, "/api/bobbyt/job/all").withHeaders((HeaderNames.AUTHORIZATION,
@@ -96,38 +106,19 @@ class BobbytControllerSpec extends Specification  {
 
       login
 
-      private val id = UUID.randomUUID().toString
-      private val journey: Journey = Journey(true, MeansOfTransportation(Seq(TubeLine("central", "central")), Nil), TimeOfDay(8, 30), 40)
-      private val job = Job("jobTitle", alert = Email("name",EmailAddress("from@mss.it"),"name",EmailAddress("from@mss.it")),
-        journey= journey,accountId = "accountId")
-
       //create a job
-      val response = route(implicitApp, FakeRequest(POST, "/api/bobbyt").withBody(Json.toJson(job)).withHeaders((HeaderNames.AUTHORIZATION,
-        s"Bearer $token")))
-      status(response.get) must equalTo(CREATED)
-
-      val getResource = headers(response.get).get("Location").get
-      getResource must be startWith "/api/bobbyt"
-      val getRec = route(implicitApp, FakeRequest(GET, getResource).withHeaders((HeaderNames.AUTHORIZATION,
-        s"Bearer $token"))).get
-
-      status(getRec) must equalTo(OK)
-      val json: Job = contentAsJson(getRec).as[Job]
-      json.title must equalTo("jobTitle")
-      json.alert.from must equalTo(EmailAddress("from@mss.it"))
-      json.alert.to must equalTo(EmailAddress("from@mss.it"))
-      json.journey.meansOfTransportation.tubeLines.size must equalTo(1)
+      val jobCreated = postANewJob
 
 
 
       //updating the same job
-      val updatedJob = json.copy(title = "Updated Job", journey = journey.copy(meansOfTransportation =
+      val updatedJob = jobCreated.job.copy(title = "Updated Job", journey = journey.copy(meansOfTransportation =
         MeansOfTransportation(Seq(TubeLine("central", "central"), TubeLine("piccadilly", "piccadilly")), Nil)))
       val responseForUpdate = route(implicitApp, FakeRequest(PUT, "/api/bobbyt").withBody(Json.toJson(updatedJob)).withHeaders((HeaderNames.AUTHORIZATION,
         s"Bearer $token")))
       status(responseForUpdate.get) must equalTo(OK)
 
-      val getRecUpdated = route(implicitApp, FakeRequest(GET, getResource).withHeaders((HeaderNames.AUTHORIZATION,
+      val getRecUpdated = route(implicitApp, FakeRequest(GET, jobCreated.location).withHeaders((HeaderNames.AUTHORIZATION,
         s"Bearer $token"))).get
 
       status(getRecUpdated) must equalTo(OK)
@@ -145,32 +136,20 @@ class BobbytControllerSpec extends Specification  {
 
       login
 
-      private val id = UUID.randomUUID().toString
-      private val journey: Journey = Journey(true, MeansOfTransportation(Seq(TubeLine("central", "central")), Nil), TimeOfDay(8, 30), 40)
-      private val job = Job("jobTitle", alert = Email("name",EmailAddress("from@mss.it"),"name",EmailAddress("from@mss.it")),
-        journey= journey,accountId = "accountId")
+
 
       //create a job
-      val response = route(implicitApp, FakeRequest(POST, "/api/bobbyt").withBody(Json.toJson(job)).withHeaders((HeaderNames.AUTHORIZATION,
-        s"Bearer $token")))
-      status(response.get) must equalTo(CREATED)
-
-      val getResource = headers(response.get).get("Location").get
-      getResource must be startWith "/api/bobbyt"
-      val getRec = route(implicitApp, FakeRequest(GET, getResource).withHeaders((HeaderNames.AUTHORIZATION,
-        s"Bearer $token"))).get
-
-      status(getRec) must equalTo(OK)
+      val jobCreated = postANewJob
 
 
       //deleting the job
 
-      val deleteResp  = route(implicitApp, FakeRequest(DELETE, getResource).withHeaders((HeaderNames.AUTHORIZATION,
+      val deleteResp  = route(implicitApp, FakeRequest(DELETE, jobCreated.location).withHeaders((HeaderNames.AUTHORIZATION,
         s"Bearer $token"))).get
       status(deleteResp) must equalTo(OK)
 
       // the GET should return 404 now
-      val getRecAfterDEeting = route(implicitApp, FakeRequest(GET, getResource).withHeaders((HeaderNames.AUTHORIZATION,
+      val getRecAfterDEeting = route(implicitApp, FakeRequest(GET, jobCreated.location).withHeaders((HeaderNames.AUTHORIZATION,
         s"Bearer $token"))).get
 
       status(getRecAfterDEeting) must equalTo(NOT_FOUND)
@@ -185,7 +164,6 @@ class BobbytControllerSpec extends Specification  {
       login
 
       val account = Account(userName = "neo13",email = Some(EmailAddress("test@test.it")), psw = Some("passw"))
-      private val toJson = Json.toJson(account)
 
       val response = route(implicitApp,FakeRequest(POST, "/api/bobbyt/account").withBody(Json.parse("""{"userName":"neo13","email":{"value":"test@test.it"},"psw":"passw","active":false, "docType":"Account"}""")))
       status(response.get) must equalTo(CREATED)
@@ -248,10 +226,9 @@ class BobbytControllerSpec extends Specification  {
       tokens(0).token must equalTo(token)
 
       val account = Account(userName = "neo13",email = Some(EmailAddress("test@test.it")), psw = Some("passw"))
-      private val toJson = Json.toJson(account)
 
       val responseProfile = route(implicitApp,FakeRequest(POST, "/api/bobbyt/profile").withHeaders((HeaderNames.AUTHORIZATION,
-        s"Bearer $token")).withJsonBody(toJson)).get
+        s"Bearer $token")).withJsonBody(Json.toJson(account))).get
       status(responseProfile) must equalTo(CREATED)
 
       val getResource = headers(responseProfile).get("Location").get
@@ -285,10 +262,9 @@ class BobbytControllerSpec extends Specification  {
       tokens.size must equalTo(0)
 
       val account = Account(userName = "neo13",email = Some(EmailAddress("test@test.it")), psw = Some("passw"))
-      private val toJson = Json.toJson(account)
 
       val responseProfile = route(implicitApp,FakeRequest(POST, "/api/bobbyt/profile").withHeaders((HeaderNames.AUTHORIZATION,
-        s"Bearer $token")).withJsonBody(toJson)).get
+        s"Bearer $token")).withJsonBody(Json.toJson(account))).get
       status(responseProfile) must equalTo(UNAUTHORIZED)
 
     }
