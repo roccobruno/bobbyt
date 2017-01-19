@@ -2,25 +2,30 @@ package service
 
 import java.net.ConnectException
 import java.util.concurrent.TimeoutException
+import javax.inject.{Inject, Singleton}
 
+import akka.actor.ActorSystem
 import model.{Converters, EmailToSent, MailgunId, MailgunSendResponse}
 import org.apache.commons.codec.binary.Base64
-import play.api.Logger
+import play.api.{Configuration, Logger}
 import play.api.http.HeaderNames
 import play.api.libs.ws.WSClient
+import repository.{BobbytRepository, TubeRepository}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-trait MailGunService {
+@Singleton
+class MailGunService @Inject()(conf: Configuration, ws: WSClient) {
 
-  val ws: WSClient
 
-  def mailGunApiKey: String
+  val mailGunApiKey = conf.getString("mailgun-api-key").getOrElse(throw new IllegalStateException("no configuration found for mailGun apiKey"))
 
-  def mailGunHost: String
+  val mailGunHost: String = conf.getString("mailgun-host").getOrElse(throw new IllegalStateException("no configuration found for mailGun host"))
 
-  def enableSender: Boolean
+  val enableSender: Boolean = conf.getBoolean("mailgun-enabled").getOrElse(false)
+
+
 
   private def authValue = s"Basic ${Base64.encodeBase64String(s"api:$mailGunApiKey".getBytes("UTF-8"))}"
 

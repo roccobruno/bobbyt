@@ -1,24 +1,28 @@
 package service
 
+import javax.inject.{Inject, Singleton}
+
+import akka.actor.ActorSystem
 import model._
 import org.joda.time.DateTime
-import repository.{BobbytRepository, ID}
+import play.api.Configuration
+import play.api.libs.ws.WSClient
+import repository.{BobbytRepository, ID, TubeRepository}
 import service.tfl.{TubeConnector, TubeService}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-trait JobService extends TubeService with TubeConnector  {
+@Singleton
+class JobService @Inject()(conf: Configuration, bobbytRepository: BobbytRepository, tubeRepository: TubeRepository, mailGunService: MailGunService, tubeService: TubeService)  {
 
 
 
   def deleteSentAlerts() = {
-    Future.successful(repo.deleteAll[ID](repo.findAllAlertSentYesterday))
+    Future.successful(bobbytRepository.deleteAll[ID](bobbytRepository.findAllAlertSentYesterday))
   }
 
 
-  val repo: BobbytRepository
-  val mailGunService: MailGunService
   val ALERT_SENT = true
   val ALERT_NOT_SENT = false
 
@@ -27,7 +31,7 @@ trait JobService extends TubeService with TubeConnector  {
  //TODO can u merge the 2 update operations?
   def processAlerts(): Future[Seq[String]] = {
     for {
-      alerts <- repo.findAllAlertNotSent()
+      alerts <- bobbytRepository.findAllAlertNotSent()
       emails <- sendAlert(alerts)
       _ <- updateAlert(alerts)
       _ <- updateAlertSentDate(alerts)
@@ -43,11 +47,11 @@ trait JobService extends TubeService with TubeConnector  {
   }
 
   def updateAlert(alerts: Seq[EmailAlert]) = {
-    Future.sequence(alerts map (al => repo.markAlertAsSent(al.getId)))
+    Future.sequence(alerts map (al => bobbytRepository.markAlertAsSent(al.getId)))
   }
 
   def updateAlertSentDate(alerts: Seq[EmailAlert]) = {
-    Future.sequence(alerts map (al => repo.markAlertAsSentAt(al.getId)))
+    Future.sequence(alerts map (al => bobbytRepository.markAlertAsSentAt(al.getId)))
   }
 
 
@@ -59,14 +63,14 @@ trait JobService extends TubeService with TubeConnector  {
       Future.sequence( seq map {
         job => {
           val alertToSave = EmailAlert(email = job.alert, persisted = DateTime.now(), sentAt = None, jobId = job.getId)
-          repo.saveAlertIfAbsent(alertToSave)
+          bobbytRepository.saveAlertIfAbsent(alertToSave)
         }
       })
     }
 
     for {
       tubelinesIds <- tubeRepository.findAllWithDisruption()
-      jobs <- repo.findJobsByTubeLineAndRunningTime(tubelinesIds.map(id => TubeLine(id.id,id.id)))
+      jobs <- bobbytRepository.findJobsByTubeLineAndRunningTime(tubelinesIds.map(id => TubeLine(id.id,id.id)))
       res <- createAlerts(jobs)
     } yield res
 

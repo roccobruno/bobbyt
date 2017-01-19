@@ -114,14 +114,15 @@ class AccountController @Inject()(system: ActorSystem, wsClient: WSClient, conf:
 
   def login() = Action.async(parse.json) { implicit request =>
     withJsonBody[Login] { login =>
-
       repository.findAccountByUserName(login.username) flatMap {
         case Seq(account) if (account.active && account.psw == login.password) => {
-          val token = BearerTokenGenerator.generateSHAToken("account-token")
-          repository.saveToken(Token(token = token, accountId = Some(account.getId), userId = "")) map {
-            case Some(id) => Ok.withCookies(Cookie("token", token, httpOnly = false))
-            case _ => println(s"Error saving token for account ${account.getId} in login"); InternalServerError
-          }
+          for {
+            token <- generateToken(account)
+            res <- repository.saveToken(Token(token = token.value, accountId = Some(account.getId), userId = "")) map {
+              case Some(id) => Ok.withHeaders(HeaderNames.AUTHORIZATION -> s"Bearer ${token.value}")
+              case _ => println(s"Error saving token for account ${account.getId} in login"); InternalServerError
+            }
+          } yield (res)
         }
         case Seq(account) => Future.successful(Unauthorized)
         case Nil => Future.successful(NotFound)

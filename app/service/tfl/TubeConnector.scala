@@ -1,17 +1,18 @@
 package service.tfl
 
 
+import javax.inject.{Inject, Singleton}
+
 import model.TFLTubeService
-import play.api.{Configuration, Logger}
 import play.api.libs.ws.WSClient
+import play.api.{Configuration, Logger}
 import repository.TubeRepository
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-trait TubeConnector  {
-  val ws:WSClient
-  val configuration: Configuration
+@Singleton
+class TubeConnector @Inject()(ws:WSClient, configuration: Configuration)  {
 
   def apiId = configuration.getString("tfl-api-id").getOrElse(throw new IllegalStateException("NO API ID found for TFL"))
   def apiKey = configuration.getString("tfl-api-key").getOrElse(throw new IllegalStateException("NO API KEY found for TFL"))
@@ -33,9 +34,8 @@ trait TubeConnector  {
 }
 
 
-
-trait TubeService {
-  this:TubeConnector =>
+@Singleton
+class TubeService @Inject()(tubeRepository: TubeRepository, tubeConnector: TubeConnector) {
 
 
   def findTubeById(id: String) : Future[Option[TFLTubeService]] = {
@@ -46,18 +46,17 @@ trait TubeService {
     Future.sequence(ids.map(findTubeById))
   }
 
-  val tubeRepository : TubeRepository
 
   def updateTubeServices: Future[Boolean] = {
-    val tubeRecordsF = fetchLineStatus("tube")
-    val dlrRecordsF = fetchLineStatus("dlr")
-    val tflRailRecordsF = fetchLineStatus("tflrail")
-    val overgroundRailRecordsF = fetchLineStatus("overground")
+    val tubeRecordsF = tubeConnector.fetchLineStatus("tube")
+    val dlrRecordsF = tubeConnector.fetchLineStatus("dlr")
+    val tflRailRecordsF = tubeConnector.fetchLineStatus("tflrail")
+    val overgroundRailRecordsF = tubeConnector.fetchLineStatus("overground")
 
     for {
       tubeRecords <- tubeRecordsF
       dlrRecords <- dlrRecordsF
-      overgroundRecords <- fetchLineStatus("overground")
+      overgroundRecords <- tubeConnector.fetchLineStatus("overground")
       tflRailRecords <- tflRailRecordsF
       results <- tubeRepository.saveTubeService(tubeRecords ++ dlrRecords ++ overgroundRecords ++ tflRailRecords)
     } yield true

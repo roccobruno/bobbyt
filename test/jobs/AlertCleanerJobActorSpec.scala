@@ -23,6 +23,7 @@ import org.junit.runner.RunWith
 import org.mockito.Mockito
 import org.specs2.runner.JUnitRunner
 import play.api.test.WithApplication
+import service.tfl.TubeService
 
 
 @RunWith(classOf[JUnitRunner])
@@ -37,13 +38,13 @@ class AlertCleanerJobActorSpec  extends TestKit(ActorSystem("AlertCleanerJobActo
 
     "delete all the alert sent" in {
 
-      val jbService =  new JobService {
-        override val repo: BobbytRepository = bobbytRepository
-        override val mailGunService: MailGunService = Mockito.mock(classOf[MailGunService])
-        override val ws: WSClient = Mockito.mock(classOf[WSClient])
-        override val configuration: Configuration = Mockito.mock(classOf[Configuration])
-        override val tubeRepository: TubeRepository = Mockito.mock(classOf[TubeRepository])
-      }
+      val jbService =  new JobService (
+        Mockito.mock(classOf[Configuration]),
+        bobbytRepository,
+        Mockito.mock(classOf[TubeRepository]),
+        Mockito.mock(classOf[MailGunService]),
+        Mockito.mock(classOf[TubeService])
+      )
 
       val actor = TestActorRef(new AlertCleanerJobActor(jbService))
 

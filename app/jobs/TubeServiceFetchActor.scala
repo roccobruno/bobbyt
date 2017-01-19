@@ -8,11 +8,11 @@ import scala.concurrent.ExecutionContext.Implicits.global
 case class Run(name: String)
 
 object TubeServiceFetchActor {
-  def props(tubeService: TubeService with TubeConnector): Props = Props(new TubeServiceFetchActor(tubeService))
+  def props(tubeService: TubeService): Props = Props(new TubeServiceFetchActor(tubeService))
 
 }
 
-class TubeServiceFetchActor(tubeService: TubeService with TubeConnector) extends Actor {
+class TubeServiceFetchActor(tubeService: TubeService) extends Actor {
 
   def receive = {
     case Run(name: String) =>

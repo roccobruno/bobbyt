@@ -17,6 +17,7 @@ import play.api.Configuration
 import play.api.libs.json.Json
 import play.api.libs.ws.WSClient
 import repository.{BobbytRepository, TubeRepository}
+import service.tfl.TubeService
 import service.{JobService, MailGunService}
 import util.{Testing, TubeLineUtil}
 
@@ -101,13 +102,13 @@ class TubeServiceCheckerJobActorSpec  extends TestKit(ActorSystem("TubeServiceCh
     }
     "create alerts in case of tube disraption" in {
 
-      val jbService =  new JobService {
-        override val repo: BobbytRepository = bobbytRepository
-        override val mailGunService: MailGunService = Mockito.mock(classOf[MailGunService])
-        override val ws: WSClient = Mockito.mock(classOf[WSClient])
-        override val configuration: Configuration = Mockito.mock(classOf[Configuration])
-        override val tubeRepository: TubeRepository = ttubeRepo
-      }
+      val jbService =  new JobService (
+        Mockito.mock(classOf[Configuration]),
+        bobbytRepository,
+        ttubeRepo,
+        Mockito.mock(classOf[MailGunService]),
+        Mockito.mock(classOf[TubeService])
+      )
 
       val actor = TestActorRef(new TubeServiceCheckerActor(jbService))
 

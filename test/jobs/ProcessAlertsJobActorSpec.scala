@@ -17,7 +17,9 @@ import service.{JobService, MailGunService}
 import util.Testing
 import akka.pattern.ask
 import org.junit.runner.RunWith
+import org.mockito.Mockito.when
 import org.specs2.runner.JUnitRunner
+import service.tfl.TubeService
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.Future
@@ -56,30 +58,29 @@ class ProcessAlertsJobActorSpec  extends TestKit(ActorSystem("ProcessAlertsJobAc
 
     "process all the not sent alerts" in {
 
-      val jbService =  new JobService {
-        override val repo: BobbytRepository = bobbytRepository
-        override val mailGunService: MailGunService = new MailGunService {
 
-
-          override def sendEmail(emailToSent: EmailToSent): Future[MailgunSendResponse] = {
-
-            emailsBuffer +=  emailToSent
-            Future.successful(MailgunSendResponse(MailgunId(""),""))
-
-          }
-
-          override def enableSender: Boolean = true
-
-          override def mailGunHost: String = "test"
-
-          override def mailGunApiKey: String = ""
-
-          override val ws: WSClient = Mockito.mock(classOf[WSClient])
+      class MailGunServiceMock(conf: Configuration, ws: WSClient) extends MailGunService(conf, ws) {
+        override def sendEmail(emailToSent: EmailToSent): Future[MailgunSendResponse] = {
+          emailsBuffer +=  emailToSent
+          Future.successful(MailgunSendResponse(MailgunId(""),""))
         }
-        override val ws: WSClient = Mockito.mock(classOf[WSClient])
-        override val configuration: Configuration = Mockito.mock(classOf[Configuration])
-        override val tubeRepository: TubeRepository = Mockito.mock(classOf[TubeRepository])
       }
+
+
+      val configurationMock: Configuration = Mockito.mock(classOf[Configuration])
+      when(configurationMock.getString("mailgun-api-key")).thenReturn(Some("test"))
+      when(configurationMock.getString("mailgun-host")).thenReturn(Some("test"))
+      when(configurationMock.getBoolean("mailgun-enabled")).thenReturn(Some(false))
+
+      val mailGunService: MailGunService = new MailGunServiceMock(configurationMock, Mockito.mock(classOf[WSClient]))
+
+      val jbService =  new JobService (
+        Mockito.mock(classOf[Configuration]),
+        bobbytRepository,
+        Mockito.mock(classOf[TubeRepository]),
+        mailGunService,
+        Mockito.mock(classOf[TubeService])
+      )
 
       val actor = TestActorRef(new ProcessAlertsJobActor(jbService))
 

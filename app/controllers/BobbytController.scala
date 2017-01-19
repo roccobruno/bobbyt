@@ -21,42 +21,25 @@ import scala.concurrent.Future
 import scala.concurrent.duration._
 
 
-class BobbytController @Inject()(system: ActorSystem, wsClient: WSClient, conf: Configuration, bobbytRepository: BobbytRepository, tubeRepository: TubeRepository, tokenService: TokenService) extends
+class BobbytController @Inject()(system: ActorSystem,
+                                 wsClient: WSClient,
+                                 conf: Configuration,
+                                 bobbytRepository: BobbytRepository,
+                                 tubeRepository: TubeRepository,
+                                 tokenService: TokenService,
+                                 mailGunService: MailGunService,
+                                 tubeService: TubeService,
+                                 jobService: JobService) extends
   Controller with JsonParser with TokenChecker {
+
   val repository: BobbytRepository = bobbytRepository
 
   def getTubRepository = tubeRepository
 
-  object JobServiceImpl extends JobService {
-    val repo = repository
-    val ws = wsClient
-    val tubeRepository = getTubRepository
-    override val configuration: Configuration = conf
-    override val mailGunService: MailGunService = MailGunService
-  }
-
-  object MailGunService extends MailGunService {
-    override val ws: WSClient = wsClient
-
-    override def mailGunApiKey = conf.getString("mailgun-api-key").getOrElse(throw new IllegalStateException("no configuration found for mailGun apiKey"))
-
-    override def mailGunHost: String = conf.getString("mailgun-host").getOrElse(throw new IllegalStateException("no configuration found for mailGun host"))
-
-    override def enableSender: Boolean = conf.getBoolean("mailgun-enabled").getOrElse(false)
-
-  }
-
-  object TubeServiceRegistry extends TubeService with TubeConnector {
-    val ws = wsClient
-    val tubeRepository = getTubRepository
-    override val configuration: Configuration = conf
-  }
-
-
-  lazy val tubeServiceActor = system.actorOf(TubeServiceFetchActor.props(TubeServiceRegistry), "tubeServiceActor")
-  lazy val tubeServiceCheckActor = system.actorOf(TubeServiceCheckerActor.props(JobServiceImpl), "tubeServiceCheckerActor")
-  lazy val alertJobActor = system.actorOf(ProcessAlertsJobActor.props(JobServiceImpl), "alertJobActor")
-  lazy val alertCleanerJobActor = system.actorOf(AlertCleanerJobActor.props(JobServiceImpl), "alertCleanerJobActor")
+  lazy val tubeServiceActor = system.actorOf(TubeServiceFetchActor.props(tubeService), "tubeServiceActor")
+  lazy val tubeServiceCheckActor = system.actorOf(TubeServiceCheckerActor.props(jobService), "tubeServiceCheckerActor")
+  lazy val alertJobActor = system.actorOf(ProcessAlertsJobActor.props(jobService), "alertJobActor")
+  lazy val alertCleanerJobActor = system.actorOf(AlertCleanerJobActor.props(jobService), "alertCleanerJobActor")
 
 
   lazy val tubeScheduleJob = system.scheduler.schedule(
