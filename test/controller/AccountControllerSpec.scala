@@ -140,21 +140,12 @@ class AccountControllerSpec extends Specification {
 
       cleanUpDBAndCreateToken
 
-      val username: String = "neo13"
-      val passw: String = "passw"
       val response = createAccount
-
-
       val getResource = headers(response.get).get("Location").get
       getResource must be startWith ("/api/bobbyt/account")
 
-
       val ttoken = headers(response.get).get(AUTHORIZATION).get
-      val getRecUpdated = route(implicitApp, FakeRequest(GET, getResource).withHeaders((HeaderNames.AUTHORIZATION, ttoken))).get
-      status(getRecUpdated) must equalTo(OK)
-      val jsonUpdated: Account = contentAsJson(getRecUpdated).as[Account]
 
-      jsonUpdated.active must equalTo(true)
 
       //lookup account by token
       val getRecByToken = route(implicitApp, FakeRequest(GET, "/api/bobbyt/account/load").withHeaders((HeaderNames.AUTHORIZATION,

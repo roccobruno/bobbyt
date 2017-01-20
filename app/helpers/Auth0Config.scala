@@ -7,6 +7,7 @@ import play.api.{Logger, Play}
 import scala.util.{Failure, Success}
 
 case class Auth0Config(secret: String, clientId: String, callbackURL: String, domain: String)
+
 object Auth0Config {
   def get() = {
     Auth0Config(
