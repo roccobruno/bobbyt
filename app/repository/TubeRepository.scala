@@ -20,8 +20,10 @@ class TubeRepository @Inject()(clusterConfiguration: ClusterConfiguration)   {
 
   val cluster = clusterConfiguration.cluster
 
+  val BUCKET_NAME = "tube"
+
   val bucket = new IndexApi {
-    override def asyncBucket: AsyncBucket = cluster.openBucket("tube").async()
+    override def asyncBucket: AsyncBucket = cluster.openBucket(BUCKET_NAME).async()
   }
 
   bucket.createPrimaryIndex(deferBuild = false) map {
@@ -50,6 +52,22 @@ class TubeRepository @Inject()(clusterConfiguration: ClusterConfiguration)   {
 
   def deleteById(tubeLineId: String): Future[Any] = {
     bucket.delete[TFLTubeService](tubeLineId)
+  }
+
+  def deleteAllTubeLines() = {
+
+    val query =  SELECT ("*") FROM BUCKET_NAME
+    bucket.find[TFLTubeService](query) map {
+      res =>
+        res.foreach {
+          record => deleteById(record.id)
+        }
+    }
+  }
+
+  def findAllTubeLines() = {
+    val query =  SELECT ("*") FROM BUCKET_NAME
+    bucket.find[TFLTubeService](query)
   }
 
 }

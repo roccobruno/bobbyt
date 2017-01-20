@@ -27,7 +27,7 @@ class TubeConnector @Inject()(ws:WSClient, configuration: Configuration)  {
           valid => valid
         )
     } recover {
-      case ex: Throwable => println(s"ERRROROROORROORORO ${ex.getMessage}"); Seq()
+      case ex: Throwable => Logger.error(s"Error fetching tube lines info. Error: ${ex.getMessage}"); Seq()
     }
   }
 
@@ -56,7 +56,7 @@ class TubeService @Inject()(tubeRepository: TubeRepository, tubeConnector: TubeC
     for {
       tubeRecords <- tubeRecordsF
       dlrRecords <- dlrRecordsF
-      overgroundRecords <- tubeConnector.fetchLineStatus("overground")
+      overgroundRecords <- overgroundRailRecordsF
       tflRailRecords <- tflRailRecordsF
       results <- tubeRepository.saveTubeService(tubeRecords ++ dlrRecords ++ overgroundRecords ++ tflRailRecords)
     } yield true
