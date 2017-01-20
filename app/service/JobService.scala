@@ -2,13 +2,11 @@ package service
 
 import javax.inject.{Inject, Singleton}
 
-import akka.actor.ActorSystem
 import model._
 import org.joda.time.DateTime
 import play.api.Configuration
-import play.api.libs.ws.WSClient
 import repository.{BobbytRepository, ID, TubeRepository}
-import service.tfl.{TubeConnector, TubeService}
+import service.tfl.TubeService
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future

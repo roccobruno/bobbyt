@@ -4,13 +4,11 @@ import java.net.ConnectException
 import java.util.concurrent.TimeoutException
 import javax.inject.{Inject, Singleton}
 
-import akka.actor.ActorSystem
 import model.{Converters, EmailToSent, MailgunId, MailgunSendResponse}
 import org.apache.commons.codec.binary.Base64
-import play.api.{Configuration, Logger}
 import play.api.http.HeaderNames
 import play.api.libs.ws.WSClient
-import repository.{BobbytRepository, TubeRepository}
+import play.api.{Configuration, Logger}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future

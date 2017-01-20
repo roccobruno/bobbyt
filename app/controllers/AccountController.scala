@@ -12,7 +12,7 @@ import play.api.libs.json.{JsString, Json}
 import play.api.libs.ws.WSClient
 import play.api.mvc.{Action, Controller, Cookie, Results}
 import repository.{BobbytRepository, TubeRepository}
-import service.{BearerTokenGenerator, TokenService}
+import service.TokenService
 import util.FutureO
 
 import scala.concurrent.ExecutionContext.Implicits.global

@@ -2,15 +2,14 @@ package repository
 
 import javax.inject.{Inject, Singleton}
 
-import com.couchbase.client.java.{AsyncBucket, CouchbaseCluster}
+import com.couchbase.client.java.AsyncBucket
 import model.TFLTubeService
-import org.asyncouchbase.bucket.BucketApi
 import org.asyncouchbase.index.IndexApi
 import org.asyncouchbase.model.OpsResult
 import org.asyncouchbase.query.ExpressionImplicits._
 import org.asyncouchbase.query.{ANY, SELECT}
 import org.joda.time.DateTime
-import play.api.{Configuration, Logger}
+import play.api.Logger
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future

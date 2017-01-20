@@ -1,8 +1,7 @@
 package jobs
 
 import akka.actor._
-import play.api.Logger
-import service.tfl.{TubeConnector, TubeService}
+import service.tfl.TubeService
 
 import scala.concurrent.ExecutionContext.Implicits.global
 case class Run(name: String)

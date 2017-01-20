@@ -2,11 +2,8 @@ package service
 
 import javax.inject.{Inject, Singleton}
 
-import akka.actor.ActorSystem
 import model.Token
-import play.api.Configuration
-import play.api.libs.ws.WSClient
-import repository.{BobbytRepository, TubeRepository}
+import repository.BobbytRepository
 import util.FutureO
 
 import scala.concurrent.ExecutionContext.Implicits.global

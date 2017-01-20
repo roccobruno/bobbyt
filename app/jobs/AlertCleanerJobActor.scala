@@ -2,6 +2,7 @@ package jobs
 
 import akka.actor.{Actor, Props}
 import service.JobService
+
 import scala.concurrent.ExecutionContext.Implicits.global
 
 object AlertCleanerJobActor{

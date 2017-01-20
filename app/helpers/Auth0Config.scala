@@ -4,7 +4,7 @@ import javax.inject.{Inject, Singleton}
 
 import io.igl.jwt.{Jwt, _}
 import org.joda.time.DateTime
-import play.api.{Configuration, Logger, Play}
+import play.api.{Configuration, Logger}
 
 import scala.util.{Failure, Success}
 
