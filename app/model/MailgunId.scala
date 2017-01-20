@@ -11,10 +11,6 @@ case class MailgunId(id: String) {
 
 object MailgunId {
 
-  implicit val writes: Writes[MailgunId] = new Writes[MailgunId] {
-    def writes(o: MailgunId) = JsString(o.id)
-  }
-
   val withoutChevrons = (id: String) => id.replaceAll(">", "").replaceAll("<", "")
 
   implicit val reads = __.read[String].map(id => MailgunId(withoutChevrons(id)))

@@ -134,6 +134,11 @@ class AccountControllerSpec extends Specification {
 
     }
 
+    "returning 400 when wrong email format is provice in account" in new Setup {
+        val response = route(implicitApp, FakeRequest(POST, "/api/bobbyt/account").withBody(Json.parse("""{"userName":"neo13","email":{"value":"testtest.it"},"psw":"passw","active":false, "docType":"Account"}""")))
+        status(response.get) must equalTo(BAD_REQUEST)
+    }
+
 
 
     "create and load account " in new Setup() {

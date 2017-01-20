@@ -6,8 +6,7 @@ case class MailgunSendResponse(id: MailgunId, message: String)
 
 object MailgunSendResponse {
   implicit val formats = {
-    implicit val mailgunIdWrites = MailgunId.writes
     implicit val mailgunIdReads = MailgunId.reads
-    Json.format[MailgunSendResponse]
+    Json.reads[MailgunSendResponse]
   }
 }
