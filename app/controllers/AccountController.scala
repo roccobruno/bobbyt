@@ -64,13 +64,6 @@ class AccountController @Inject()(system: ActorSystem, wsClient: WSClient, conf:
     }
   }
 
-  def validateToken(token: String) = Action.async {
-    tokenService.validateToken(token) map {
-      case Some(token) => Ok
-      case _ => BadRequest
-    }
-  }
-
   //TODO send email to confirm account
   //TODO encrypt password before storing it
   def account() = Action.async(parse.json) { implicit request =>
