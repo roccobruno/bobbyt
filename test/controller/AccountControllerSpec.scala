@@ -127,6 +127,8 @@ class AccountControllerSpec extends Specification  {
 
     }
 
+    //TODO add tests for validate account + validate account with an expired token (error case)
+
     "create and validate account " in new Setup() {
 
       cleanUpDBAndCreateToken

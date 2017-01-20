@@ -56,13 +56,7 @@ trait TokenChecker {
 
   def WithValidToken(body : (JwtToken) => Future[Result])(implicit request: Request[_]) = {
     val token = request.headers.get(HeaderNames.AUTHORIZATION)
-    token.fold(Future.successful[Result](Results.Unauthorized)){
-      value =>
-        Auth0Config.decodeAndVerifyToken(value.split(" ")(1)) match {
-          case Right(token) =>  body(token)
-          case Left(message) => Logger.warn(s"Token validation failed . Msg - $message");Future.successful(Results.Unauthorized)
-        }
-    }
+    WithValidToken(token)(body)
   }
 
   def WithValidToken(jwtToken: Option[String])(body : (JwtToken) => Future[Result])(implicit request: Request[_]) = {
