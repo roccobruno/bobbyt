@@ -130,9 +130,27 @@ class AccountControllerSpec extends Specification  {
     //TODO add tests for validate account + validate account with an expired token (error case)
     //clean up tests
 
+    "create and validate account" in new Setup {
+      cleanUpDBAndCreateToken
+
+      val account = Account(userName = "neo13",email = Some(EmailAddress("test@test.it")), psw = Some("passw"))
+
+      val response = route(implicitApp,FakeRequest(POST, "/api/bobbyt/account").withBody(Json.parse("""{"userName":"neo13","email":{"value":"test@test.it"},"psw":"passw","active":false, "docType":"Account"}""")))
+      status(response.get) must equalTo(CREATED)
+
+      val getResource = headers(response.get).get("Location").get
+      val ttoken = headers(response.get).get(AUTHORIZATION).get
+
+      //validate account
+      val responseValidate = route(implicitApp,FakeRequest(POST, s"/api/bobbyt/account/validate?token=${URLEncoder.encode(ttoken, "UTF-8")}").withBody(Json.parse("{}")))
+      status(responseValidate.get) must equalTo(SEE_OTHER)
 
 
-    "create and validate account " in new Setup() {
+    }
+
+
+
+    "create and load account " in new Setup() {
 
       cleanUpDBAndCreateToken
 
