@@ -54,12 +54,12 @@ trait TokenChecker {
     }
   }
 
-  def WithValidToken(body : (JwtToken) => Future[Result])(implicit request: Request[_]) = {
+  def WithValidToken(body : (JwtToken) => Future[Result])(implicit request: Request[_]) : Future[Result]= {
     val token = request.headers.get(HeaderNames.AUTHORIZATION)
-    WithValidToken(token)(body)
+    WithValidToken(token)(body)(request)
   }
 
-  def WithValidToken(jwtToken: Option[String])(body : (JwtToken) => Future[Result])(implicit request: Request[_]) = {
+  def WithValidToken(jwtToken: Option[String])(body : (JwtToken) => Future[Result])(implicit request: Request[_]) : Future[Result] = {
     jwtToken.fold(Future.successful[Result](Results.Unauthorized)){
       value =>
         Auth0Config.decodeAndVerifyToken(value.split(" ")(1)) match {
