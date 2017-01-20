@@ -25,6 +25,5 @@ POST    /api/bobbyt/account/validate             controllers.AccountController.v
 POST    /api/bobbyt/login-token                  controllers.AccountController.loginWithToken
 POST    /api/bobbyt/login                        controllers.AccountController.login
 POST    /api/bobbyt/logout                       controllers.AccountController.logout
-GET     /api/bobbyt/token/validate/:token        controllers.AccountController.validateToken(token: String)
 
 
