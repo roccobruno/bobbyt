@@ -22,21 +22,30 @@ import scala.concurrent.duration._
 
 
 @RunWith(classOf[JUnitRunner])
-class AccountControllerSpec extends Specification  {
+class AccountControllerSpec extends Specification {
 
   case class TestJob(job: Job, location: String)
 
-  lazy  val appEnableSec = GuiceApplicationBuilder().loadConfig(Configuration("security-enabled" -> true)).build()
+  lazy val appEnableSec = GuiceApplicationBuilder().loadConfig(Configuration("security-enabled" -> true)).build()
 
-  trait Setup extends WithApplication with TokenUtil  {
+  trait Setup extends WithApplication with TokenUtil {
+
+    val account = Account(userName = "neo13", email = Some(EmailAddress("test@test.it")), psw = Some("passw"))
+
+    def createAccount = {
+      val response = route(implicitApp, FakeRequest(POST, "/api/bobbyt/account").withBody(Json.parse("""{"userName":"neo13","email":{"value":"test@test.it"},"psw":"passw","active":false, "docType":"Account"}""")))
+      status(response.get) must equalTo(CREATED)
+      response
+    }
+
     val bobbytRepos = new BobbytRepository(new ClusterConfiguration(app.configuration))
 
     def cleanUpDBAndCreateToken = {
-      Await.result( for {
-        del <-bobbytRepos.deleteAllToken()
-        del <-bobbytRepos.deleteAllAccount()
-        del <-bobbytRepos.deleteAllAlerts()
-        del <-bobbytRepos.deleteAllJobs()
+      Await.result(for {
+        del <- bobbytRepos.deleteAllToken()
+        del <- bobbytRepos.deleteAllAccount()
+        del <- bobbytRepos.deleteAllAlerts()
+        del <- bobbytRepos.deleteAllJobs()
       } yield del, 10 seconds)
 
     }
@@ -51,30 +60,18 @@ class AccountControllerSpec extends Specification  {
   }
 
 
-
   "account controller" should {
-
-    val id = "12345"
-
-
-
-
-
 
     "return 201 and create account record" in new Setup() {
       cleanUpDBAndCreateToken
 
-      val account = Account(userName = "neo13",email = Some(EmailAddress("test@test.it")), psw = Some("passw"))
-
-      val response = route(implicitApp,FakeRequest(POST, "/api/bobbyt/account").withBody(Json.parse("""{"userName":"neo13","email":{"value":"test@test.it"},"psw":"passw","active":false, "docType":"Account"}""")))
-      status(response.get) must equalTo(CREATED)
-
+      val response = createAccount
       val getResource = headers(response.get).get("Location").get
-      getResource must be startWith("/api/bobbyt/account")
+      getResource must be startWith ("/api/bobbyt/account")
 
       val ttoken = headers(response.get).get(AUTHORIZATION).get
 
-      val getRec = route(implicitApp,FakeRequest(GET, getResource).withHeaders((HeaderNames.AUTHORIZATION,
+      val getRec = route(implicitApp, FakeRequest(GET, getResource).withHeaders((HeaderNames.AUTHORIZATION,
         ttoken))).get
       status(getRec) must equalTo(OK)
       val json: Account = contentAsJson(getRec).as[Account]
@@ -89,15 +86,10 @@ class AccountControllerSpec extends Specification  {
     "login via username/password , account not active" in new Setup() {
       cleanUpDBAndCreateToken
 
-      val account = Account(userName = "neo13",email = Some(EmailAddress("test@test.it")), psw = Some("passw"))
-
-      val response = route(implicitApp,FakeRequest(POST, "/api/bobbyt/account").withBody(Json.parse("""{"userName":"neo13","email":{"value":"test@test.it"},"psw":"passw","active":false, "docType":"Account"}""")))
-      status(response.get) must equalTo(CREATED)
+      createAccount
 
       val loginData = Login(username = "neo13", password = "passw")
-
-
-      val responseLogin = route(implicitApp,FakeRequest(POST, "/api/bobbyt/login").withBody(Json.toJson(loginData)))
+      val responseLogin = route(implicitApp, FakeRequest(POST, "/api/bobbyt/login").withBody(Json.toJson(loginData)))
       status(responseLogin.get) must equalTo(UNAUTHORIZED)
 
 
@@ -107,21 +99,18 @@ class AccountControllerSpec extends Specification  {
     "login via username/password , account active" in new Setup() {
       cleanUpDBAndCreateToken
 
-      val account = Account(userName = "neo13",email = Some(EmailAddress("test@test.it")), psw = Some("passw"))
-
-      val response = route(implicitApp,FakeRequest(POST, "/api/bobbyt/account").withBody(Json.parse("""{"userName":"neo13","email":{"value":"test@test.it"},"psw":"passw","active":false, "docType":"Account"}""")))
-      status(response.get) must equalTo(CREATED)
+      val response = createAccount
 
       val getResource = headers(response.get).get("Location").get
       val ttoken = headers(response.get).get(AUTHORIZATION).get
 
       //validate account
-      val responseValidate = route(implicitApp,FakeRequest(POST, s"/api/bobbyt/account/validate?token=${URLEncoder.encode(ttoken, "UTF-8")}").withBody(Json.parse("{}")))
+      val responseValidate = route(implicitApp, FakeRequest(POST, s"/api/bobbyt/account/validate?token=${URLEncoder.encode(ttoken, "UTF-8")}").withBody(Json.parse("{}")))
       status(responseValidate.get) must equalTo(SEE_OTHER)
 
       //login
       val loginData = Login(username = "neo13", password = "passw")
-      val responseLogin = route(implicitApp,FakeRequest(POST, "/api/bobbyt/login").withBody(Json.toJson(loginData)))
+      val responseLogin = route(implicitApp, FakeRequest(POST, "/api/bobbyt/login").withBody(Json.toJson(loginData)))
       status(responseLogin.get) must equalTo(OK)
 
 
@@ -133,16 +122,13 @@ class AccountControllerSpec extends Specification  {
     "create and validate account" in new Setup {
       cleanUpDBAndCreateToken
 
-      val account = Account(userName = "neo13",email = Some(EmailAddress("test@test.it")), psw = Some("passw"))
-
-      val response = route(implicitApp,FakeRequest(POST, "/api/bobbyt/account").withBody(Json.parse("""{"userName":"neo13","email":{"value":"test@test.it"},"psw":"passw","active":false, "docType":"Account"}""")))
-      status(response.get) must equalTo(CREATED)
+      val response = createAccount
 
       val getResource = headers(response.get).get("Location").get
       val ttoken = headers(response.get).get(AUTHORIZATION).get
 
       //validate account
-      val responseValidate = route(implicitApp,FakeRequest(POST, s"/api/bobbyt/account/validate?token=${URLEncoder.encode(ttoken, "UTF-8")}").withBody(Json.parse("{}")))
+      val responseValidate = route(implicitApp, FakeRequest(POST, s"/api/bobbyt/account/validate?token=${URLEncoder.encode(ttoken, "UTF-8")}").withBody(Json.parse("{}")))
       status(responseValidate.get) must equalTo(SEE_OTHER)
 
 
@@ -156,24 +142,22 @@ class AccountControllerSpec extends Specification  {
 
       val username: String = "neo13"
       val passw: String = "passw"
-      val account = Account(userName = username,firstName = Some("Rocco"),lastName = Some("Bruno"), email = Some(EmailAddress("test@test.it")),
-        psw = Some(passw))
-      val response = route(implicitApp,FakeRequest(POST, "/api/bobbyt/account").withBody(Json.toJson(account)))
-      status(response.get) must equalTo(CREATED)
+      val response = createAccount
+
 
       val getResource = headers(response.get).get("Location").get
-      getResource must be startWith("/api/bobbyt/account")
+      getResource must be startWith ("/api/bobbyt/account")
 
 
       val ttoken = headers(response.get).get(AUTHORIZATION).get
-      val getRecUpdated = route(implicitApp,FakeRequest(GET, getResource).withHeaders((HeaderNames.AUTHORIZATION, ttoken))).get
+      val getRecUpdated = route(implicitApp, FakeRequest(GET, getResource).withHeaders((HeaderNames.AUTHORIZATION, ttoken))).get
       status(getRecUpdated) must equalTo(OK)
       val jsonUpdated: Account = contentAsJson(getRecUpdated).as[Account]
 
       jsonUpdated.active must equalTo(true)
 
       //lookup account by token
-      val getRecByToken = route(implicitApp,FakeRequest(GET, "/api/bobbyt/account/load").withHeaders((HeaderNames.AUTHORIZATION,
+      val getRecByToken = route(implicitApp, FakeRequest(GET, "/api/bobbyt/account/load").withHeaders((HeaderNames.AUTHORIZATION,
         ttoken))).get
       status(getRecByToken) must equalTo(OK)
 
@@ -187,21 +171,20 @@ class AccountControllerSpec extends Specification  {
         s"Bearer $token")).withJsonBody(Json.parse("{}"))).get
       status(resp) must equalTo(CREATED)
 
-      val tokens = Await.result(bobbytRepos.findAllToken(),10 seconds)
+      val tokens = Await.result(bobbytRepos.findAllToken(), 10 seconds)
 
       tokens.size must equalTo(1)
       tokens(0).token must equalTo(token)
 
-      val account = Account(userName = "neo13",email = Some(EmailAddress("test@test.it")), psw = Some("passw"))
 
-      val responseProfile = route(implicitApp,FakeRequest(POST, "/api/bobbyt/profile").withHeaders((HeaderNames.AUTHORIZATION,
+      val responseProfile = route(implicitApp, FakeRequest(POST, "/api/bobbyt/profile").withHeaders((HeaderNames.AUTHORIZATION,
         s"Bearer $token")).withJsonBody(Json.toJson(account))).get
       status(responseProfile) must equalTo(CREATED)
 
       val getResource = headers(responseProfile).get("Location").get
-      getResource must be startWith("/api/bobbyt/account")
+      getResource must be startWith ("/api/bobbyt/account")
 
-      val getRec = route(implicitApp,FakeRequest(GET, getResource).withHeaders((HeaderNames.AUTHORIZATION,
+      val getRec = route(implicitApp, FakeRequest(GET, getResource).withHeaders((HeaderNames.AUTHORIZATION,
         s"Bearer $token"))).get
       status(getRec) must equalTo(OK)
       val json: Account = contentAsJson(getRec).as[Account]
@@ -221,23 +204,18 @@ class AccountControllerSpec extends Specification  {
         s"Bearer $token")).withJsonBody(Json.parse("{}"))).get
       status(resp) must equalTo(CREATED)
 
-      val response = route(implicitApp,FakeRequest(POST, "/api/bobbyt/logout").withBody("").withHeaders((HeaderNames.AUTHORIZATION,
+      val response = route(implicitApp, FakeRequest(POST, "/api/bobbyt/logout").withBody("").withHeaders((HeaderNames.AUTHORIZATION,
         s"Bearer $token"))).get
       status(response) must equalTo(OK)
 
-      val tokens = Await.result(bobbytRepos.findAllToken(),10 seconds)
+      val tokens = Await.result(bobbytRepos.findAllToken(), 10 seconds)
       tokens.size must equalTo(0)
 
-      val account = Account(userName = "neo13",email = Some(EmailAddress("test@test.it")), psw = Some("passw"))
-
-      val responseProfile = route(implicitApp,FakeRequest(POST, "/api/bobbyt/profile").withHeaders((HeaderNames.AUTHORIZATION,
+      val responseProfile = route(implicitApp, FakeRequest(POST, "/api/bobbyt/profile").withHeaders((HeaderNames.AUTHORIZATION,
         s"Bearer $token")).withJsonBody(Json.toJson(account))).get
       status(responseProfile) must equalTo(UNAUTHORIZED)
 
     }
-
-
-
 
 
   }
