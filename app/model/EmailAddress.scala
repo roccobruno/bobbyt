@@ -10,7 +10,6 @@ case class EmailAddress(value: String) extends StringValue {
     case invalidEmail => throw new IllegalArgumentException(s"'$invalidEmail' is not a valid email address")
   }
 
-  lazy val obfuscated = ObfuscatedEmailAddress.apply(value)
 }
 
 object EmailAddress {
