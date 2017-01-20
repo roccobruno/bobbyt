@@ -65,6 +65,16 @@ trait TokenChecker {
     }
   }
 
+  def WithValidToken(jwtToken: Option[String])(body : (JwtToken) => Future[Result])(implicit request: Request[_]) = {
+    jwtToken.fold(Future.successful[Result](Results.Unauthorized)){
+      value =>
+        Auth0Config.decodeAndVerifyToken(value.split(" ")(1)) match {
+          case Right(token) =>  body(token)
+          case Left(message) => Logger.warn(s"Token validation failed . Msg - $message");Future.successful(Results.Unauthorized)
+        }
+    }
+  }
+
   def generateToken(account: Account) : Future[EncodedJwtToken] = {
 
     val expiry: Long = DateTime.now().plusHours(1).getMillis

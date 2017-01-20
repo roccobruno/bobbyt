@@ -3,18 +3,16 @@ package controllers
 import java.util.UUID
 import javax.inject.Inject
 
-import _root_.util.FutureO
 import akka.actor.ActorSystem
 import jobs._
-import model.{Job, _}
-import play.api.{Configuration, Logger}
-import play.api.http.HeaderNames
+import model.Job
+import play.api.Configuration
 import play.api.libs.json._
 import play.api.libs.ws.WSClient
 import play.api.mvc._
 import repository.{BobbytRepository, TubeRepository}
-import service.tfl.{TubeConnector, TubeService}
-import service.{BearerTokenGenerator, JobService, MailGunService, TokenService}
+import service.tfl.TubeService
+import service.{JobService, MailGunService, TokenService}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -29,8 +27,7 @@ class BobbytController @Inject()(system: ActorSystem,
                                  tokenService: TokenService,
                                  mailGunService: MailGunService,
                                  tubeService: TubeService,
-                                 jobService: JobService) extends
-  Controller with JsonParser with TokenChecker {
+                                 jobService: JobService) extends Controller with JsonParser with TokenChecker {
 
   val repository: BobbytRepository = bobbytRepository
 

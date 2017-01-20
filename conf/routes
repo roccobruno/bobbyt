@@ -21,7 +21,7 @@ POST    /api/bobbyt/account                      controllers.AccountController.a
 POST    /api/bobbyt/profile                      controllers.AccountController.submitProfile
 GET     /api/bobbyt/account/:id                  controllers.AccountController.findAccount(id:String)
 GET     /api/bobbyt/account/username/:username   controllers.AccountController.checkUserName(username: String)
-POST    /api/bobbyt/account/validate             controllers.AccountController.validateAccount
+POST    /api/bobbyt/account/validate             controllers.AccountController.validateAccount(token: String)
 POST    /api/bobbyt/login-token                  controllers.AccountController.loginWithToken
 POST    /api/bobbyt/login                        controllers.AccountController.login
 POST    /api/bobbyt/logout                       controllers.AccountController.logout

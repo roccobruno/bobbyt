@@ -50,16 +50,16 @@ class AccountController @Inject()(system: ActorSystem, wsClient: WSClient, conf:
     }
   }
 
-  def validateAccount() = Action.async { implicit request =>
-    WithAuthorization { token =>
+  def validateAccount(token: String) = Action.async { implicit request =>
+    WithValidToken(Some(token)) { jwtToken =>
       val res = (for {
-        tk <- FutureO(repository.findValidTokenByValue(token.token))
-        result <- FutureO(repository.activateAccount(tk, token.token))
+        tk <- FutureO(repository.findValidTokenByValue(jwtToken.token))
+        result <- FutureO(repository.activateAccount(tk, jwtToken.token))
       } yield result).future
 
       res map {
         case Some(id) => Redirect("/accountactive")
-        case None => BadRequest(Json.obj("message" -> JsString(""))) //TODO
+        case None => BadRequest(Json.obj("message" -> JsString("The supplied token is not valid or is expired")))
       }
     }
   }
@@ -72,6 +72,7 @@ class AccountController @Inject()(system: ActorSystem, wsClient: WSClient, conf:
   }
 
   //TODO send email to confirm account
+  //TODO encrypt password before storing it
   def account() = Action.async(parse.json) { implicit request =>
     val accId = UUID.randomUUID().toString
     withJsonBody[Account] { account =>
@@ -115,7 +116,7 @@ class AccountController @Inject()(system: ActorSystem, wsClient: WSClient, conf:
   def login() = Action.async(parse.json) { implicit request =>
     withJsonBody[Login] { login =>
       repository.findAccountByUserName(login.username) flatMap {
-        case Seq(account) if (account.active && account.psw == login.password) => {
+        case Seq(account) if (account.active && account.psw.getOrElse(UUID.randomUUID().toString) == login.password) => {
           for {
             token <- generateToken(account)
             res <- repository.saveToken(Token(token = token.value, accountId = Some(account.getId), userId = "")) map {
