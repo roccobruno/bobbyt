@@ -4,6 +4,7 @@ import java.util.UUID
 import javax.inject.Inject
 
 import akka.actor.ActorSystem
+import helpers.Auth0Config
 import jobs._
 import model.Job
 import play.api.Configuration
@@ -27,9 +28,11 @@ class BobbytController @Inject()(system: ActorSystem,
                                  tokenService: TokenService,
                                  mailGunService: MailGunService,
                                  tubeService: TubeService,
-                                 jobService: JobService) extends Controller with JsonParser with TokenChecker {
+                                 jobService: JobService,
+                                 auth0Configuration: Auth0Config) extends Controller with JsonParser with TokenChecker {
 
-  val repository: BobbytRepository = bobbytRepository
+  override val repository: BobbytRepository = bobbytRepository
+  override val auth0Config = auth0Configuration
 
   def getTubRepository = tubeRepository
 

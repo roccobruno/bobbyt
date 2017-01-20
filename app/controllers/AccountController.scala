@@ -4,6 +4,7 @@ import java.util.UUID
 import javax.inject.Inject
 
 import akka.actor.ActorSystem
+import helpers.Auth0Config
 import model.{Account, Login, Token}
 import play.api.Configuration
 import play.api.http.HeaderNames
@@ -13,13 +14,20 @@ import play.api.mvc.{Action, Controller, Cookie, Results}
 import repository.{BobbytRepository, TubeRepository}
 import service.{BearerTokenGenerator, TokenService}
 import util.FutureO
-import scala.concurrent.ExecutionContext.Implicits.global
 
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-class AccountController @Inject()(system: ActorSystem, wsClient: WSClient, conf: Configuration, bobbytRepository: BobbytRepository, tubeRepository: TubeRepository, tokenService: TokenService) extends
+class AccountController @Inject()(system: ActorSystem,
+                                  wsClient: WSClient,
+                                  conf: Configuration,
+                                  bobbytRepository: BobbytRepository,
+                                  tubeRepository: TubeRepository,
+                                  tokenService: TokenService,
+                                  auth0Configuration: Auth0Config) extends
   Controller with JsonParser with TokenChecker {
   override val repository: BobbytRepository = bobbytRepository
+  override val auth0Config = auth0Configuration
 
 
 

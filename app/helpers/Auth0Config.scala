@@ -1,22 +1,27 @@
 package helpers
 
+import javax.inject.{Inject, Singleton}
+
 import io.igl.jwt.{Jwt, _}
 import org.joda.time.DateTime
-import play.api.{Logger, Play}
+import play.api.{Configuration, Logger, Play}
 
 import scala.util.{Failure, Success}
 
-case class Auth0Config(secret: String, clientId: String, callbackURL: String, domain: String)
+@Singleton
+class Auth0Config @Inject()(configuration: Configuration) {
 
-object Auth0Config {
-  def get() = {
-    Auth0Config(
-          Play.current.configuration.getString("auth0.clientSecret").get,
-          Play.current.configuration.getString("auth0.clientId").get,
-          Play.current.configuration.getString("auth0.callbackURL").get,
-          Play.current.configuration.getString("auth0.domain").get
-    )
-  }
+
+  private val secret = configuration.getString("auth0.clientSecret").getOrElse(throw new IllegalStateException("auth0.clientSecret  is missing"))
+  private val clientId = configuration.getString("auth0.clientId").getOrElse(throw new IllegalStateException("auth0.clientId  is missing"))
+  private val callbackURL = configuration.getString("auth0.callbackURL").getOrElse(throw new IllegalStateException("auth0.callbackURL  is missing"))
+  private val domain = configuration.getString("auth0.domain").getOrElse(throw new IllegalStateException("auth0.domain  is missing"))
+
+
+  def _secret = secret
+  def _clientId = clientId
+  def _callbackURL = callbackURL
+  def _domain = domain
 
 
   def decodeAndVerifyToken(jwt: String): Either[String, JwtToken] = {
