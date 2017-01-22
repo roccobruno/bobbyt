@@ -4,6 +4,7 @@ import java.net.URLEncoder
 import java.util.UUID
 
 import model._
+import org.joda.time.DateTime
 import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
@@ -105,7 +106,8 @@ class AccountControllerSpec extends Specification {
       val ttoken = headers(response.get).get(AUTHORIZATION).get
 
       //validate account
-      val responseValidate = route(implicitApp, FakeRequest(POST, s"/api/bobbyt/account/validate?token=${URLEncoder.encode(ttoken, "UTF-8")}").withBody(Json.parse("{}")))
+      val responseValidate = route(implicitApp, FakeRequest(POST, s"/api/bobbyt/account/validate?token=${URLEncoder.encode(ttoken, "UTF-8")}")
+        .withBody(Json.parse("{}")))
       status(responseValidate.get) must equalTo(SEE_OTHER)
 
       //login
@@ -113,6 +115,17 @@ class AccountControllerSpec extends Specification {
       val responseLogin = route(implicitApp, FakeRequest(POST, "/api/bobbyt/login").withBody(Json.toJson(loginData)))
       status(responseLogin.get) must equalTo(OK)
 
+
+    }
+
+    "return 403 when validatoing account with expired token" in new Setup {
+
+      cleanUpDBAndCreateToken
+      override val expiry = DateTime.now().minusHours(1).getMillis / 1000
+      val response = createAccount
+
+      val responseValidate = route(implicitApp, FakeRequest(POST, s"/api/bobbyt/account/validate?token=${URLEncoder.encode(s"Bearer $token", "UTF-8")}").withBody(Json.parse("{}")))
+      status(responseValidate.get) must equalTo(UNAUTHORIZED)
 
     }
 
@@ -130,7 +143,6 @@ class AccountControllerSpec extends Specification {
       //validate account
       val responseValidate = route(implicitApp, FakeRequest(POST, s"/api/bobbyt/account/validate?token=${URLEncoder.encode(ttoken, "UTF-8")}").withBody(Json.parse("{}")))
       status(responseValidate.get) must equalTo(SEE_OTHER)
-
 
     }
 
