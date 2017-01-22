@@ -1,7 +1,6 @@
 package controller
 
 import java.net.URLEncoder
-import java.util.UUID
 
 import model._
 import org.joda.time.DateTime
