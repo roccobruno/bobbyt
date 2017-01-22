@@ -29,39 +29,18 @@ class BobbytController @Inject()(system: ActorSystem,
                                  mailGunService: MailGunService,
                                  tubeService: TubeService,
                                  jobService: JobService,
-                                 auth0Configuration: Auth0Config) extends Controller with JsonParser with TokenChecker {
+                                 auth0Configuration: Auth0Config,
+                                 jobsRegistry: JobsRegistry) extends Controller with JsonParser with TokenChecker {
 
   override val repository: BobbytRepository = bobbytRepository
   override val auth0Config = auth0Configuration
 
   def getTubRepository = tubeRepository
 
-  lazy val tubeServiceActor = system.actorOf(TubeServiceFetchActor.props(tubeService), "tubeServiceActor")
-  lazy val tubeServiceCheckActor = system.actorOf(TubeServiceCheckerActor.props(jobService), "tubeServiceCheckerActor")
-  lazy val alertJobActor = system.actorOf(ProcessAlertsJobActor.props(jobService), "alertJobActor")
-  lazy val alertCleanerJobActor = system.actorOf(AlertCleanerJobActor.props(jobService), "alertCleanerJobActor")
-
-
-  lazy val tubeScheduleJob = system.scheduler.schedule(
-    0.microseconds, 10000.milliseconds, tubeServiceActor, Run("run"))
-
-
-  lazy val tubeCheckerScheduleJob = system.scheduler.schedule(
-    0.microseconds, 10000.milliseconds, tubeServiceCheckActor, Run("run"))
-
-
-  lazy val alertJobScheduleJob = system.scheduler.schedule(
-    0.microseconds, 10000.milliseconds, alertJobActor, Run("run"))
-
-  lazy val alertCleanerJobScheduleJob = system.scheduler.schedule(
-    0.microseconds, 1.hour, alertCleanerJobActor, Run("run"))
 
   def fetchTubeLine() = Action.async { implicit request =>
 
-    //          tubeScheduleJob
-    tubeCheckerScheduleJob
-    alertJobScheduleJob
-    alertCleanerJobScheduleJob
+    jobsRegistry.startJobs
     Future.successful(Ok(Json.obj("res" -> true)))
 
   }

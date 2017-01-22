@@ -1,6 +1,7 @@
 package jobs
 
 import akka.actor._
+import play.api.Logger
 import service.tfl.TubeService
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -17,7 +18,7 @@ class TubeServiceFetchActor(tubeService: TubeService) extends Actor {
     case Run(name: String) =>
 
       tubeService.updateTubeServices map { res =>
-        println("Running job : tube service")
+        Logger.info("Running job : tube service")
         sender() ! res
       }
   }

@@ -1,6 +1,7 @@
 package jobs
 
 import akka.actor.{Actor, Props}
+import play.api.Logger
 import service.JobService
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -15,7 +16,7 @@ class AlertCleanerJobActor(jobService: JobService) extends Actor {
   def receive = {
     case Run(name: String) =>
       jobService.deleteSentAlerts() map { res =>
-        println(s"Running job : cleaning alerts ")
+        Logger.info(s"Running job : cleaning alerts ")
         sender() ! res
       }
   }

@@ -82,6 +82,13 @@ class BobbytControllerSpec extends Specification  {
     val id = "12345"
 
 
+    "return 200 when starting jobs through fetch Line end point" in new Setup{
+
+      val allJob = route(implicitApp,FakeRequest(GET, "/api/bobbyt/fetch")).get
+      status(allJob) must equalTo(OK)
+    }
+
+
     "return 201 when posting a bobbyt record" in new Setup {
 
       cleanUpDBAndCreateToken

@@ -1,6 +1,7 @@
 package jobs
 
 import akka.actor._
+import play.api.Logger
 import service.JobService
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -16,7 +17,7 @@ class TubeServiceCheckerActor(jobService: JobService) extends Actor {
     case Run(name: String) =>
 
       jobService.checkTubeLinesAndCreatesAlert() map { res =>
-        println(s"Running job : tube service checker. Generated ${res.flatten.size} Alerts")
+        Logger.info(s"Running job : tube service checker. Generated ${res.flatten.size} Alerts")
         sender() ! res
       }
   }
