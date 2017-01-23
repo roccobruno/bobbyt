@@ -128,9 +128,6 @@ class AccountControllerSpec extends Specification {
 
     }
 
-    //TODO add tests for validate account + validate account with an expired token (error case)
-    //clean up tests
-
     "create and validate account" in new Setup {
       cleanUpDBAndCreateToken
 
@@ -222,6 +219,33 @@ class AccountControllerSpec extends Specification {
         s"Bearer $token")).withJsonBody(Json.toJson(account))).get
       status(responseProfile) must equalTo(UNAUTHORIZED)
 
+    }
+
+
+    "return 200 when username already exists" in new Setup {
+
+      cleanUpDBAndCreateToken
+
+      val createAccountResponse = createAccount
+
+      val ttoken = headers(createAccountResponse.get).get(AUTHORIZATION).get
+
+      val response = route(implicitApp, FakeRequest(GET, s"/api/bobbyt/account/username/neo13").withHeaders((HeaderNames.AUTHORIZATION,
+        ttoken))).get
+      status(response) must equalTo(OK)
+    }
+
+    "return 400 when username doesn not exist" in new Setup {
+
+      cleanUpDBAndCreateToken
+
+      val createAccountResponse = createAccount
+
+      val ttoken = headers(createAccountResponse.get).get(AUTHORIZATION).get
+
+      val response = route(implicitApp, FakeRequest(GET, s"/api/bobbyt/account/username/test").withHeaders((HeaderNames.AUTHORIZATION,
+        ttoken))).get
+      status(response) must equalTo(NOT_FOUND)
     }
 
 

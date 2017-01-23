@@ -17,7 +17,6 @@ import service.{JobService, MailGunService, TokenService}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import scala.concurrent.duration._
 
 
 class BobbytController @Inject()(system: ActorSystem,
@@ -34,9 +33,6 @@ class BobbytController @Inject()(system: ActorSystem,
 
   override val repository: BobbytRepository = bobbytRepository
   override val auth0Config = auth0Configuration
-
-  def getTubRepository = tubeRepository
-
 
   def fetchTubeLine() = Action.async { implicit request =>
 
