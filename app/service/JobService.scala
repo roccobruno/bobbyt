@@ -26,12 +26,10 @@ class JobService @Inject()(conf: Configuration, bobbytRepository: BobbytReposito
 
 
 
- //TODO can u merge the 2 update operations?
   def processAlerts(): Future[Seq[String]] = {
     for {
       alerts <- bobbytRepository.findAllAlertNotSent()
       emails <- sendAlert(alerts)
-      _ <- updateAlert(alerts)
       _ <- updateAlertSentDate(alerts)
     } yield alerts map (_.jobId)
   }
@@ -44,9 +42,6 @@ class JobService @Inject()(conf: Configuration, bobbytRepository: BobbytReposito
 
   }
 
-  def updateAlert(alerts: Seq[EmailAlert]) = {
-    Future.sequence(alerts map (al => bobbytRepository.markAlertAsSent(al.getId)))
-  }
 
   def updateAlertSentDate(alerts: Seq[EmailAlert]) = {
     Future.sequence(alerts map (al => bobbytRepository.markAlertAsSentAt(al.getId)))

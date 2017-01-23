@@ -97,25 +97,6 @@ class BobbytRepositorySpec  extends Testing {
 
     }
 
-    "set an alert as sent" in {
-
-      val email: Email = Email("test", EmailAddress("test@test.it"), "test", EmailAddress("test@test.it"))
-      val jobID: String = UUID.randomUUID().toString
-      val res = await(bobbytRepository.saveAlert(EmailAlert(email = email, sentAt = None, persisted = DateTime.now, jobId = jobID)))
-      res.isDefined shouldBe true
-
-      val notUpdatedAlert = await(bobbytRepository.findAlertByJobIdAndSentValue(jobID))
-      notUpdatedAlert.isDefined shouldBe true
-      notUpdatedAlert.get.sent shouldBe false
-
-      await(bobbytRepository.markAlertAsSent(res.get))
-
-      val updateAlert = await(bobbytRepository.findAlertByJobIdAndSentValue(jobID, sent = true))
-      updateAlert.isDefined shouldBe true
-      updateAlert.get.sent shouldBe true
-
-    }
-
     "set an alert as sentAt" in {
 
       val email: Email = Email("test", EmailAddress("test@test.it"), "test", EmailAddress("test@test.it"))
@@ -129,9 +110,10 @@ class BobbytRepositorySpec  extends Testing {
 
       await(bobbytRepository.markAlertAsSentAt(res.get))
 
-      val updateAlert = await(bobbytRepository.findAlertByJobIdAndSentValue(jobID))
+      val updateAlert = await(bobbytRepository.findAlertByJobIdAndSentValue(jobID, sent = true))
       updateAlert.isDefined shouldBe true
       updateAlert.get.sentAt.isDefined shouldBe true
+      updateAlert.get.sent shouldBe true
 
     }
 

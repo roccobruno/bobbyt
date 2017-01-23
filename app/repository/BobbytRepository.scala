@@ -32,6 +32,8 @@ class BobbytRepository @Inject()(clusterConfiguration: ClusterConfiguration) {
   }
 
 
+
+  //TODO create indexes only if not existing
   //by_type_token
   bucket.createPrimaryIndex(deferBuild = false) map {
     _ => Logger.info("PRIMARY INDEX CREATED")
@@ -261,13 +263,12 @@ class BobbytRepository @Inject()(clusterConfiguration: ClusterConfiguration) {
 
   }
 
-  def markAlertAsSent(alertId: String) = {
-    bucket.setValue(alertId, "sent", true)
+  def markAlertAsSentAt(alertId: String) = {
+    val values = Map("sentAt" -> DateTime.now().toDate, "sent" -> true)
+    bucket.setValues(alertId, values)
   }
 
-  def markAlertAsSentAt(alertId: String) = {
-    bucket.setValue(alertId, "sentAt", DateTime.now().toDate)
-  }
+
 
   private def timeOfDay(tm: DateTime): Int = TimeOfDay.time(tm.hourOfDay().get(), tm.minuteOfHour().get())
 
