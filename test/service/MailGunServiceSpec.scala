@@ -19,8 +19,6 @@ class MailGunServiceSpec extends WordSpecLike with Matchers with BeforeAndAfterA
 
   "a service" should {
 
-
-
     "return MailGunResponse with ID" in {
 
       val confMock = mock(classOf[Configuration])
@@ -59,6 +57,76 @@ class MailGunServiceSpec extends WordSpecLike with Matchers with BeforeAndAfterA
 
       res.id shouldBe id
       res.message shouldBe "success"
+
+    }
+
+    def setUpMocking(statusCode: Int): (EmailToSent, MailGunService) = {
+      val confMock = mock(classOf[Configuration])
+      val wsCLientMock = mock(classOf[WSClient])
+
+      when(confMock.getString("mailgun-api-key")).thenReturn(Some("KEY"))
+      when(confMock.getString("mailgun-host")).thenReturn(Some("host"))
+      when(confMock.getBoolean("mailgun-enabled")).thenReturn(Some(true))
+
+      val emailToSent = EmailToSent("test@test.it", "to@test.it", "ciao", Some("test"), None)
+
+      val mockResponse = mock(classOf[WSResponse])
+
+      val authValue = s"Basic ${Base64.encodeBase64String(s"api:KEY".getBytes("UTF-8"))}"
+
+      val mockedRequest = mock(classOf[WSRequest])
+      val mockedRequest2 = mock(classOf[WSRequest])
+      when(mockedRequest.withHeaders(HeaderNames.AUTHORIZATION -> authValue)).thenReturn(mockedRequest2)
+      when(mockedRequest2.post(any[Map[String, Seq[String]]]())(any())).thenReturn(Future.successful(mockResponse))
+
+      when(wsCLientMock.url("host")).thenReturn(mockedRequest)
+
+      when(mockResponse.status).thenReturn(statusCode)
+      val id: MailgunId = MailgunId("id")
+      val json =
+        """
+           {
+           "id": "id",
+           "message":"success"
+           }
+        """.stripMargin
+      when(mockResponse.json).thenReturn(Json.parse(json))
+
+      val service = new MailGunService(confMock, wsCLientMock)
+      (emailToSent, service)
+    }
+    "throw an exception in case of errors, test for 400" in {
+
+      val (emailToSent: EmailToSent, service: MailGunService) = setUpMocking(400)
+      intercept[Exception](Await.result(service.sendEmail(emailToSent),10 seconds))
+
+    }
+
+    "throw an exception in case of errors, test for 401" in {
+
+      val (emailToSent: EmailToSent, service: MailGunService) = setUpMocking(401)
+      intercept[Exception](Await.result(service.sendEmail(emailToSent),10 seconds))
+
+    }
+
+    "throw an exception in case of errors, test for 402" in {
+
+      val (emailToSent: EmailToSent, service: MailGunService) = setUpMocking(402)
+      intercept[Exception](Await.result(service.sendEmail(emailToSent),10 seconds))
+
+    }
+
+    "throw an exception in case of errors, test for 500" in {
+
+      val (emailToSent: EmailToSent, service: MailGunService) = setUpMocking(500)
+      intercept[Exception](Await.result(service.sendEmail(emailToSent),10 seconds))
+
+    }
+
+    "throw an exception in case of errors, test for unknown status" in {
+
+      val (emailToSent: EmailToSent, service: MailGunService) = setUpMocking(999)
+      intercept[Exception](Await.result(service.sendEmail(emailToSent),10 seconds))
 
     }
 
