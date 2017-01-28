@@ -59,7 +59,7 @@ class MailGunService @Inject()(conf: Configuration, ws: WSClient) {
       }
     } else {
       Logger.info("MailGunService not enabled!!!... emails won't be sent out")
-      Future.successful(MailgunSendResponse(MailgunId("NO-ID"),""))
+      Future.successful(MailgunSendResponse(MailgunId("NO-ID"),"Mailgun Service is not enabled"))
     }
   }
 

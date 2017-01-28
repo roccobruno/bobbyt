@@ -1,5 +1,8 @@
 package service
 
+import java.net.ConnectException
+import java.util.concurrent.TimeoutException
+
 import model.{Converters, EmailToSent, MailgunId, MailgunSendResponse}
 import org.apache.commons.codec.binary.Base64
 import org.mockito.Mockito
@@ -10,8 +13,9 @@ import play.api.http.HeaderNames
 import play.api.libs.json.Json
 import play.api.libs.ws.{WSClient, WSRequest, WSResponse}
 import util.Testing
+
 import scala.concurrent.duration._
-import org.mockito.Matchers.any;
+import org.mockito.Matchers.any
 
 import scala.concurrent.{Await, Future}
 
@@ -60,7 +64,7 @@ class MailGunServiceSpec extends WordSpecLike with Matchers with BeforeAndAfterA
 
     }
 
-    def setUpMocking(statusCode: Int): (EmailToSent, MailGunService) = {
+    def setUpMocking(statusCode: Int, throwException: Option[Exception] = None): (EmailToSent, MailGunService) = {
       val confMock = mock(classOf[Configuration])
       val wsCLientMock = mock(classOf[WSClient])
 
@@ -77,7 +81,9 @@ class MailGunServiceSpec extends WordSpecLike with Matchers with BeforeAndAfterA
       val mockedRequest = mock(classOf[WSRequest])
       val mockedRequest2 = mock(classOf[WSRequest])
       when(mockedRequest.withHeaders(HeaderNames.AUTHORIZATION -> authValue)).thenReturn(mockedRequest2)
-      when(mockedRequest2.post(any[Map[String, Seq[String]]]())(any())).thenReturn(Future.successful(mockResponse))
+      when(mockedRequest2.post(any[Map[String, Seq[String]]]())(any())).thenReturn {
+
+        throwException.fold(Future.successful(mockResponse)){value => Future.failed(value)}}
 
       when(wsCLientMock.url("host")).thenReturn(mockedRequest)
 
@@ -129,6 +135,43 @@ class MailGunServiceSpec extends WordSpecLike with Matchers with BeforeAndAfterA
       intercept[Exception](Await.result(service.sendEmail(emailToSent),10 seconds))
 
     }
+
+    "throw an timeout exception in case of errors, test for unknown status" in {
+
+      val (emailToSent: EmailToSent, service: MailGunService) = setUpMocking(999, Some(new TimeoutException("connection problems")))
+      intercept[Exception](Await.result(service.sendEmail(emailToSent),10 seconds))
+
+    }
+
+    "throw an gateway exception in case of errors, test for unknown status" in {
+
+      val (emailToSent: EmailToSent, service: MailGunService) = setUpMocking(999, Some(new ConnectException("connection problems")))
+      intercept[Exception](Await.result(service.sendEmail(emailToSent),10 seconds))
+
+    }
+
+    "return MailGunResponse with NO-ID when disabled" in {
+
+      val confMock = mock(classOf[Configuration])
+      val wsCLientMock = mock(classOf[WSClient])
+
+      when(confMock.getString("mailgun-api-key")).thenReturn(Some("KEY"))
+      when(confMock.getString("mailgun-host")).thenReturn(Some("host"))
+      when(confMock.getBoolean("mailgun-enabled")).thenReturn(Some(false))
+
+      val emailToSent = EmailToSent("test@test.it", "to@test.it", "ciao", Some("test"), None)
+
+      val mockResponse = mock(classOf[WSResponse])
+
+
+      val service = new MailGunService(confMock, wsCLientMock)
+      val res = Await.result(service.sendEmail(emailToSent),10 seconds)
+
+      res.id shouldBe MailgunId("NO-ID")
+      res.message shouldBe "Mailgun Service is not enabled"
+
+    }
+
 
 
 
