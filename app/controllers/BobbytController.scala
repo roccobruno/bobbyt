@@ -13,11 +13,16 @@ import play.api.libs.ws.WSClient
 import play.api.mvc._
 import repository.{BobbytRepository, TubeRepository}
 import service.tfl.TubeService
-import service.{JobService, MailGunService, TokenService}
+import service.{JobService, JobServiceException, MailGunService, TokenService}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
+
+case class ErrorCode(errorCode: Int, message: String)
+object ErrorCode {
+  implicit val format = Json.format[ErrorCode]
+}
 
 class BobbytController @Inject()(system: ActorSystem,
                                  wsClient: WSClient,
@@ -33,6 +38,7 @@ class BobbytController @Inject()(system: ActorSystem,
 
   override val repository: BobbytRepository = bobbytRepository
   override val auth0Config = auth0Configuration
+  val jobDuration = conf.getInt("job-duration").getOrElse(120)
 
   def fetchTubeLine() = Action.async { implicit request =>
 
@@ -74,10 +80,16 @@ class BobbytController @Inject()(system: ActorSystem,
       val jobId = UUID.randomUUID().toString
       withJsonBody[Job] { job =>
         val jobToSave = job.copy(id = Some(jobId), accountId = token.userId)
-        for {
-          Some(id) <- repository.saveJob(jobToSave)
-        } yield Created.withHeaders("Location" -> ("/api/bobbyt/" + id))
-
+        if(jobToSave.journey.durationInMin > jobDuration)
+          Future.successful(BadRequest(Json.toJson(ErrorCode(4001,s"Job with wrong duration. It cannot be longer than $jobDuration mins"))))
+        else {
+          (for {
+            Some(id) <- jobService.saveJob(jobToSave)
+          } yield Created.withHeaders("Location" -> ("/api/bobbyt/" + id))) recover {
+            case JobServiceException(errorCode, message) => BadRequest(Json.toJson(ErrorCode(4002,s"Too many jobs created for the same account. Limit is 3")))
+            case ex: Throwable => InternalServerError(ex.getMessage)
+          }
+        }
       }
     }
   }

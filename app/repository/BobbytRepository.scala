@@ -4,10 +4,11 @@ import javax.inject.{Inject, Singleton}
 
 import com.couchbase.client.java.AsyncBucket
 import model.{Job, _}
+import org.asyncouchbase.bucket.Path
 import org.asyncouchbase.index.IndexApi
 import org.asyncouchbase.model.OpsResult
 import org.asyncouchbase.query.ExpressionImplicits._
-import org.asyncouchbase.query.{ANY, SELECT}
+import org.asyncouchbase.query.{ANY, COUNT, SELECT}
 import org.joda.time.DateTime
 import play.api.Logger
 import play.api.libs.json._
@@ -264,8 +265,13 @@ class BobbytRepository @Inject()(clusterConfiguration: ClusterConfiguration) {
   }
 
   def markAlertAsSentAt(alertId: String) = {
-    val values = Map("sentAt" -> DateTime.now().toDate, "sent" -> true)
+    val values = Map(Path("sentAt") -> DateTime.now().toDate, Path("sent") -> true)
     bucket.setValues(alertId, values)
+  }
+
+  def countJobWithAccountId(accountId: String): Future[Int] = {
+    val query = COUNT() FROM "bobbyt" WHERE ("accountId" === accountId AND "docType" === "Job")
+    bucket.count(query) map (_.count)
   }
 
 

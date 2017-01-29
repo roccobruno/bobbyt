@@ -102,8 +102,12 @@ class TubeServiceCheckerJobActorSpec  extends TestKit(ActorSystem("TubeServiceCh
     }
     "create alerts in case of tube disraption" in {
 
+      val confMock: Configuration = Mockito.mock(classOf[Configuration])
+      Mockito.when(confMock.getInt("job-limit")).thenReturn(Some(3))
+
+
       val jbService =  new JobService (
-        Mockito.mock(classOf[Configuration]),
+        confMock,
         bobbytRepository,
         ttubeRepo,
         Mockito.mock(classOf[MailGunService]),

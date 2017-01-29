@@ -2,7 +2,7 @@ package jobs
 
 import akka.actor.ActorSystem
 import akka.testkit.{ImplicitSender, TestKit}
-import org.mockito.Mockito.mock
+import org.mockito.Mockito._
 import play.api.Configuration
 import play.api.libs.ws.WSClient
 import repository.TubeRepository
@@ -16,7 +16,9 @@ class JobsRegistrySpec extends TestKit(ActorSystem("ProcessAlertsJobActorSpec"))
   "a registry " should {
 
       val mockConfig: Configuration = mock(classOf[Configuration])
-      val jbService =  new JobService (
+     when(mockConfig.getInt("job-limit")).thenReturn(Some(3))
+
+    val jbService =  new JobService (
         mockConfig,
         bobbytRepository,
         mock(classOf[TubeRepository]),

@@ -23,6 +23,7 @@ class JobService @Inject()(conf: Configuration, bobbytRepository: BobbytReposito
 
   val ALERT_SENT = true
   val ALERT_NOT_SENT = false
+  val jobLimit = conf.getInt("job-limit").getOrElse(3)
 
 
 
@@ -47,6 +48,14 @@ class JobService @Inject()(conf: Configuration, bobbytRepository: BobbytReposito
     Future.sequence(alerts map (al => bobbytRepository.markAlertAsSentAt(al.getId)))
   }
 
+  def saveJob(job: Job): Future[Option[String]] = {
+
+    bobbytRepository.countJobWithAccountId(job.accountId) flatMap {
+      case num:Int if num == jobLimit => throw JobServiceException(1001, "Limit reached")
+      case _ => bobbytRepository.save(job)
+    }
+
+  }
 
 
 
@@ -69,3 +78,6 @@ class JobService @Inject()(conf: Configuration, bobbytRepository: BobbytReposito
 
   }
 }
+
+
+case class JobServiceException(errorCode: Int, message: String) extends Exception

@@ -30,14 +30,15 @@ class BobbytControllerSpec extends Specification  {
 
   trait Setup extends WithApplication with TokenUtil  {
 
-    val id = UUID.randomUUID().toString
-    val journey: Journey = Journey(true, MeansOfTransportation(Seq(TubeLine("central", "central")), Nil), TimeOfDay(8, 30), 40)
-    val job = Job("jobTitle",alert = Email("name",EmailAddress("from@mss.it"),"name",EmailAddress("from@mss.it")),
-      journey= Journey(true,MeansOfTransportation(Seq(TubeLine("central","central")),Nil),TimeOfDay(8,30),40),accountId = "accountId")
-    val toJson = Json.toJson(job)
+    lazy val id = UUID.randomUUID().toString
+    def jobDuration = 40
+    lazy val journey: Journey = Journey(true, MeansOfTransportation(Seq(TubeLine("central", "central")), Nil), TimeOfDay(8, 30), 40)
+    lazy val job = Job("jobTitle",alert = Email("name",EmailAddress("from@mss.it"),"name",EmailAddress("from@mss.it")),
+      journey= Journey(true,MeansOfTransportation(Seq(TubeLine("central","central")),Nil),TimeOfDay(8,30),jobDuration),accountId = "accountId")
+    lazy val toJson = Json.toJson(job)
 
 
-    val bobbytRepos = new BobbytRepository(new ClusterConfiguration(app.configuration))
+    lazy val bobbytRepos = new BobbytRepository(new ClusterConfiguration(app.configuration))
 
     def cleanUpDBAndCreateToken = {
       Await.result( for {
@@ -108,6 +109,47 @@ class BobbytControllerSpec extends Specification  {
 
     }
 
+
+    "return 400 when updating a bobbyt job that lasts more than 1 hour" in new Setup {
+
+
+      override def jobDuration = 300
+      cleanUpDBAndCreateToken
+
+      login
+
+      //create a job
+      val response = route(implicitApp, FakeRequest(POST, "/api/bobbyt").withBody(Json.toJson(job)).withHeaders((HeaderNames.AUTHORIZATION,
+        s"Bearer $token"))).get
+      status(response) must equalTo(BAD_REQUEST)
+
+      (contentAsJson(response) \ "errorCode").as[Int] must equalTo(4001)
+      (contentAsJson(response) \ "message").as[String] must equalTo("Job with wrong duration. It cannot be longer than 120 mins")
+
+    }
+
+    "return 400 when updating a 4th bobbyt job for the same account" in new Setup {
+
+      cleanUpDBAndCreateToken
+
+      login
+
+      //create a job
+      postANewJob
+      postANewJob
+      postANewJob
+
+      val response = route(implicitApp, FakeRequest(POST, "/api/bobbyt").withBody(Json.toJson(job)).withHeaders((HeaderNames.AUTHORIZATION,
+        s"Bearer $token"))).get
+      status(response) must equalTo(BAD_REQUEST)
+
+      (contentAsJson(response) \ "errorCode").as[Int] must equalTo(4002)
+      (contentAsJson(response) \ "message").as[String] must equalTo("Too many jobs created for the same account. Limit is 3")
+
+    }
+
+
+
     "return 200 when updating a bobbyt job" in new Setup {
 
       cleanUpDBAndCreateToken
@@ -133,8 +175,6 @@ class BobbytControllerSpec extends Specification  {
       val updatedJobGet: Job = contentAsJson(getRecUpdated).as[Job]
       updatedJobGet.title must equalTo("Updated Job")
       updatedJobGet.journey.meansOfTransportation.tubeLines.size must equalTo(2)
-
-
 
     }
 

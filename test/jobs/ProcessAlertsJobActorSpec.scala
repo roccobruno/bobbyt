@@ -17,7 +17,7 @@ import service.{JobService, MailGunService}
 import util.Testing
 import akka.pattern.ask
 import org.junit.runner.RunWith
-import org.mockito.Mockito.when
+import org.mockito.Mockito.{mock, when}
 import org.specs2.runner.JUnitRunner
 import service.tfl.TubeService
 
@@ -67,19 +67,22 @@ class ProcessAlertsJobActorSpec  extends TestKit(ActorSystem("ProcessAlertsJobAc
       }
 
 
-      val configurationMock: Configuration = Mockito.mock(classOf[Configuration])
+      val configurationMock: Configuration = mock(classOf[Configuration])
       when(configurationMock.getString("mailgun-api-key")).thenReturn(Some("test"))
       when(configurationMock.getString("mailgun-host")).thenReturn(Some("test"))
       when(configurationMock.getBoolean("mailgun-enabled")).thenReturn(Some(false))
 
-      val mailGunService: MailGunService = new MailGunServiceMock(configurationMock, Mockito.mock(classOf[WSClient]))
+      val mailGunService: MailGunService = new MailGunServiceMock(configurationMock, mock(classOf[WSClient]))
+
+      val confMock: Configuration = mock(classOf[Configuration])
+      Mockito.when(confMock.getInt("job-limit")).thenReturn(Some(3))
 
       val jbService =  new JobService (
-        Mockito.mock(classOf[Configuration]),
+        confMock,
         bobbytRepository,
-        Mockito.mock(classOf[TubeRepository]),
+        mock(classOf[TubeRepository]),
         mailGunService,
-        Mockito.mock(classOf[TubeService])
+        mock(classOf[TubeService])
       )
 
       val actor = TestActorRef(new ProcessAlertsJobActor(jbService))

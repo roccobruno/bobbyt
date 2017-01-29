@@ -21,6 +21,7 @@ import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
 import org.junit.runner.RunWith
 import org.mockito.Mockito
+import org.mockito.Mockito.{mock, when}
 import org.specs2.runner.JUnitRunner
 import play.api.test.WithApplication
 import service.tfl.TubeService
@@ -38,12 +39,15 @@ class AlertCleanerJobActorSpec  extends TestKit(ActorSystem("AlertCleanerJobActo
 
     "delete all the alert sent" in {
 
+      val confMock: Configuration = mock(classOf[Configuration])
+      when(confMock.getInt("job-limit")).thenReturn(Some(3))
+
       val jbService =  new JobService (
-        Mockito.mock(classOf[Configuration]),
+        confMock,
         bobbytRepository,
-        Mockito.mock(classOf[TubeRepository]),
-        Mockito.mock(classOf[MailGunService]),
-        Mockito.mock(classOf[TubeService])
+        mock(classOf[TubeRepository]),
+        mock(classOf[MailGunService]),
+        mock(classOf[TubeService])
       )
 
       val actor = TestActorRef(new AlertCleanerJobActor(jbService))
